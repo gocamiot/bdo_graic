@@ -1,0 +1,117 @@
+{% extends "layouts/base.html" %}
+{% load static %}
+
+{% block content %}
+
+<main class="m-4">
+    {% if messages %}
+        {% for message in messages %}
+        <div class="p-4 text-sm rounded-lg {{ message.tags }}" role="alert">
+            {{ message }}
+        </div>
+        {% endfor %}
+    {% endif %}
+    
+    <div class="p-4 bg-white block border-b border-gray-200 lg:mt-1.5 dark:bg-gray-800 dark:border-gray-700 rounded-lg">
+        <div class="flex justify-between items-center mb-5">
+            <h4 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">Model Builder</h4>
+            <button data-modal-target="preview-csv" data-modal-toggle="preview-csv" type="button" class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700">Preview</button>
+        </div>
+        <div class="">
+            <form action="{% url "create_model" %}" class="p-5 bg-white border border-gray-200 rounded-lg dark:bg-gray-800 dark:border-gray-700" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="model_name" value="{{ model_name }}">
+                {% for header in headers %}
+                    <div class="grid grid-cols-7 gap-5 mb-5">
+                        <div class="col-span-2">
+                            <label for="{{ header }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Model Field Name</label>
+                            <input readonly type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" name="columns_{{ header }}" value="{{ header }}">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white" for="{{ header }}">DB Column Name</label>
+                            <input type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" name="db_columns_{{ header }}" value="{{ header }}">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white" for="{{ header }}_type">{{ header }} Type</label>
+                            <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" name="columns_{{ header }}_type" id="{{ header }}_type">
+                                <option value="TextField">TextField</option>
+                                <option value="CharField">CharField</option>
+                                <option value="IntegerField">IntegerField</option>
+                                <option value="FloatField">FloatField</option>
+                                <option value="DateField">DateField</option>
+                                <option value="BigIntegerField">BigIntegerField</option>
+                                <option value="UnixDates">UnixDates</option>
+                                <option value="ADUnixDates">ADUnixDates</option>
+                            </select>
+                        </div>
+                        <div class="col-span-1">
+                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white" for="{{ header }}_encryption_field">Encrypted Field</label>
+                            <input type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" name="encryption_{{ header }}" id="{{ header }}_encryption_field">
+                        </div>
+                    </div>
+                {% endfor %}
+
+                <button class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800" type="submit">Submit</button>
+            </form>
+        </div>
+    </div>
+</main>
+
+
+
+<div id="preview-csv" tabindex="-1" aria-hidden="true" class="py-5 fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-5xl max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <!-- Modal header -->
+            <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <div>
+                  <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    Preview CSV
+                  </h3>
+                </div>
+                <div>
+                  <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="preview-csv">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                  </button>
+                </div>
+            </div>
+            <!-- Modal body -->
+            <div style="height: 80vh;" class="p-6 space-y-6 overflow-y-auto">
+              <div class="flex flex-col">
+                <div class="overflow-x-auto">
+                  <div class="inline-block min-w-full align-middle">
+                    <div class="overflow-hidden table-wrp shadow">
+                        <table class="min-w-full divide-y divide-gray-200 table-fixed dark:divide-gray-600">
+                            <thead class="bg-gray-100 dark:bg-gray-700">
+                              <tr>
+                                {% for header in headers %}
+                                    <th scope="col" class="px-6 py-3">{{ header }}</th>
+                                {% endfor %}
+                              </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+                        
+                                {% for row in preview_rows %}
+                                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                                        {% for cell in row %}
+                                            <td class="px-6 py-4">{{ cell }}</td>
+                                        {% endfor %}
+                                    </tr>
+                                {% endfor %}
+                        
+                            </tbody>
+                        </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+    </div>
+  </div>
+
+{% endblock content %}

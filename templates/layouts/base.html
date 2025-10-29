@@ -1,0 +1,154 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  {% include "includes/head.html" %}
+  {% include 'django_quill/media.html' %}
+  {% block extrastyle %}{% endblock extrastyle %}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/css/selectize.default.min.css" />
+
+  <style>
+    .selectize-input{
+      background: transparent !important;
+      border: 1px solid transparent !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+      color: #fff;
+    }
+    .select-field .item {
+      color: #000;
+    }
+    .dark .select-field .item {
+      color: #fff;
+    }
+    input[type="select-one"] {
+      color: #000 !important;
+    }
+    .dark input[type="select-one"] {
+      color: #fff !important;
+    }
+
+    #loadingOverlay {
+    position: fixed;
+    top: 65px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.029); /* Adjust background as needed */
+    display: flex;
+    backdrop-filter: blur(1px);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+.loader {
+    border: 16px solid #6f6c6c47; /* Light grey */
+    border-top: 16px solid #3b6c85; /* Color of the spinner */
+    border-radius: 50%;
+    width: 120px;
+    height: 120px;
+    animation: spin 2s linear infinite;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+  </style>
+</head>
+
+<div id="loadingOverlay" style="position:fixed; top: 65px; left: 0px; width:100%; height:100%; background:rgba(0, 0, 0, 0.029); display:block; z-index:1000; display: flex; justify-content: center; align-items: center;">
+  <div class="loader"></div>
+</div>
+
+<body class="bg-gray-50 dark:bg-gray-800">
+
+  {% block messages %}{% endblock messages %}
+
+  {% block navigation %}
+    {% include "includes/navigation.html" %}
+  {% endblock navigation %}
+
+  <div class="flex pt-16 overflow-hidden bg-gray-50 dark:bg-gray-900">
+
+    {% block sidebar %}
+      {% include "includes/sidebar.html" %}
+    {% endblock sidebar %}
+
+    <div class="fixed inset-0 z-10 hidden bg-gray-900/50 dark:bg-gray-900/90" id="sidebarBackdrop"></div>
+
+    <div id="main-content" class="relative w-full h-full overflow-y-auto bg-gray-50 lg:ml-64 dark:bg-gray-900">
+      {% block content %}{% endblock content %}
+      {% block footer %}
+        {% include "includes/footer.html" %}
+      {% endblock footer %}
+      {% comment %} <p class="my-10 text-sm text-center text-gray-500">
+        &copy; <a href="https://www.bdo.global/en-gb/home" class="hover:underline" target="_blank">BDO</a>
+      </p> {% endcomment %}
+
+    </div>
+  </div>
+
+
+  {% include "includes/scripts.html" %}
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/js/selectize.min.js"></script>
+
+  <script>
+    $(document).ready(function() {
+      $('.select-field').each(function() {
+        $(this).selectize({
+          create: true,
+          sortField: 'text',
+          // You can add more configuration options as needed
+        });
+      });
+    });
+  </script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const taskId = urlParams.get('task_id');
+  
+      if (taskId) {
+          localStorage.setItem('backgroundTaskId', taskId);
+      }
+  
+      const storedTaskId = localStorage.getItem('backgroundTaskId');
+      if (storedTaskId) {
+        const checkStatus = () => {
+          fetch(`/tables/check_task_status/${storedTaskId}/`)
+            .then(response => response.json())
+            .then(data => {
+                alert('Data has been uploaded successfully!');
+                localStorage.removeItem('backgroundTaskId');
+                clearInterval(statusInterval);
+
+                const url = new URL(window.location.href);
+                url.searchParams.delete('task_id');
+                window.history.replaceState({}, document.title, url);
+                window.location.href = window.location.href;
+            });
+        };
+
+        // Poll every 5 seconds
+        const statusInterval = setInterval(checkStatus, 5000);
+      }
+    });
+  </script>
+  
+  <script>
+    window.onload = function() {
+      document.getElementById('loadingOverlay').style.display = 'none';
+  };
+  </script>
+      
+  {% block extra_js %}{% endblock extra_js %}
+
+</body>
+
+</html>

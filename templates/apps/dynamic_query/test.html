@@ -1,0 +1,211 @@
+{% extends "layouts/base.html" %}
+{% load static get_attribute file_extension replace_value %}
+
+{% block extrastyle %}
+
+<style>
+  .table-wrp  {
+    max-height: 75vh;
+    overflow-y: auto;
+    display:block;
+  }
+  thead{
+    position:sticky;
+    top:0
+  }
+</style>
+
+{% endblock extrastyle %}
+
+{% block content %}
+
+
+<main>
+  <div
+    class="p-4 bg-white block sm:flex items-center justify-between border-b border-gray-200 lg:mt-1.5 dark:bg-gray-800 dark:border-gray-700">
+    <div class="w-full mb-1">
+      <div class="mb-4">
+        <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">
+          Dynamic Test DT
+          <span class="inline-flex items-center justify-center w-1/2 px-2 py-2.5 text-sm font-medium text-center text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700">
+            {{ search_count }} out of {{ total_count }}
+          </span> 
+        </h1>
+      </div>
+
+      <div class="items-center justify-between block sm:flex dark:divide-gray-700">
+        <div class="flex items-center mb-4 sm:mb-0">
+          <form class="sm:pr-3 flex itmes-center gap-2" id="search-form" method="GET">
+            <div>
+              <label for="ad-device-list-search" class="sr-only">Search</label>
+              <div class="relative w-48 sm:w-64 xl:w-96">
+                <input type="text" name="search" id="ad-device-list-search"
+                  class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+                  placeholder="Global search">
+              </div>
+            </div>
+            <div>
+              <button type="submit" class="inline-flex items-center justify-center w-1/2 px-3 py-2.5 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+                <svg class="w-5 h-5 text-white dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                </svg>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="flex items-center ml-auto space-x-2 sm:space-x-3">
+          <form action="" method="post">
+            <button id="dropdownCheckboxButton" data-dropdown-toggle="dropdownDefaultCheckbox" class="inline-flex items-center justify-center w-1/2 px-2 py-2.5 text-sm font-medium text-center text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700" type="button">
+              Hide / Show Column
+              <svg class="w-2.5 h-2.5 ml-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+              </svg>
+            </button>
+            <!-- Dropdown menu -->
+            <div id="dropdownDefaultCheckbox" class="w-max z-10 hidden w-48 bg-white divide-y divide-gray-100 rounded-lg shadow dark:bg-gray-700 dark:divide-gray-600">
+              <ul class="p-3 space-y-3 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="dropdownCheckboxButton">
+                {% for field_name in field_names %}
+                  {% if not field_name.key in pre_column %}
+                  <li>
+                    <div class="flex items-center">
+                      <input id="checkbox-item-{{ field_name.id }}" data-target="{{ field_name.key }}" {% if field_name.value %} checked {% endif %} type="checkbox" value="{{ field_name.key }}" name="key" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                      <label for="checkbox-item-{{ field_name.id }}" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">{{ field_name.key }}</label>
+                    </div>
+                  </li>
+                  {% else %}
+                  <li class="hidden">
+                    <div class="flex items-center">
+                      <input id="checkbox-item-{{ field_name.id }}" data-target="{{ field_name.key }}" disabled checked type="checkbox" value="{{ field_name.key }}" name="key" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                      <label for="checkbox-item-{{ field_name.id }}" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">{{ field_name.key }}</label>
+                    </div>
+                  </li>
+                  {% endif %}
+                {% endfor %}
+              </ul>
+            </div>
+          </form>
+        </div>
+
+        <div class="flex items-center ml-auto space-x-2 sm:space-x-3">
+        </div> 
+      
+      </div>
+
+
+    </div>
+  </div>
+  <div class="flex flex-col">
+    <div style="transform:rotateX(180deg);" class="overflow-x-auto">
+      <div style="transform:rotateX(180deg);" class="inline-block min-w-full align-middle">
+        <div class="overflow-hidden table-wrp shadow">
+          <table class="min-w-full divide-y divide-gray-200 table-fixed dark:divide-gray-600">
+            <thead class="bg-gray-100 dark:bg-gray-700">
+              <tr>
+                <th scope="col" class="p-2">
+                  <div class="flex items-center">
+                    <input id="checkbox-all" aria-describedby="checkbox-1" type="checkbox"
+                      class="w-4 h-4 border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:focus:ring-primary-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                    <label for="checkbox-all" class="sr-only">checkbox</label>
+                  </div>
+                </th>
+                
+                {% for field in db_field_names %}
+                  <th title="{{ field }}" id="th_{{ field }}" scope="col" class="p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                    <div class="group flex items-center gap-2 whitespace-nowrap h-6 w-48">
+                      <span class="block whitespace-nowrap overflow-hidden">{{ field }}</span>
+                      <div class="hidden group-hover:inline-block">
+                        <a class="order-link" data-order="{{ field }}" href="#">
+                          <img class="w-3" src="{% static "dist/images/up-arrow.png" %}" alt="">
+                        </a>
+                        <a class="order-link" data-order="-{{ field }}" href="#">
+                          <img class="w-3" src="{% static "dist/images/arrow-down.png" %}" alt="">
+                        </a>
+                      </div>
+                    </div>
+                  </th>
+                {% endfor %}
+
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+
+              {% for software in softwares %}
+              <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+
+                <td class="w-4 p-2">
+                  <div class="flex items-center">
+                    <input id="checkbox-194556" aria-describedby="checkbox-1" type="checkbox"
+                      class="w-4 h-4 border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:focus:ring-primary-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                    <label for="checkbox-194556" class="sr-only">checkbox</label>
+                  </div>
+                </td>
+
+
+                {% for field_name in db_field_names %}
+                <td class="td_{{ field_name }} p-2 text-sm font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                  {{ software|getdynamicattribute:forloop.counter0 }}
+                </td>
+                {% endfor %}
+
+              </tr>
+
+              {% endfor %}
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+  {% if softwares.has_other_pages %}
+  <nav aria-label="Page navigation example" class="mt-5 ml-4">
+    <ul class="inline-flex -space-x-px text-base h-10">
+      {% if softwares.has_previous %}
+        <li>
+          <a href="#" data-page="1" class="page-link flex items-center justify-center px-4 h-10 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">First</a>
+        </li>
+        <li>
+          <a href="#" data-page="{{ softwares.previous_page_number }}" class="page-link flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Prev</a>
+        </li>
+      {% endif %}
+
+      {% for n in softwares.paginator.page_range %}
+        {% if softwares.number == n %}
+          <li>
+            <span class="flex items-center justify-center px-4 h-10 text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white">{{ n }}<span class="sr-only"></span></span>
+          </li>
+        {% elif n > softwares.number|add:'-3' and n < softwares.number|add:'3' %}
+          <li>
+            <a class="page-link flex items-center justify-center px-4 h-10 leading-tight {% if softwares.number == i %}text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white{% else %}text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white{% endif %}" data-page="{{ n }}" href="#">
+              {{ n }}
+            </a>
+          </li>
+        {% endif %}
+      {% endfor %}
+      
+      {% if softwares.has_next %}
+        <li>
+          <a href="#" data-page="{{ softwares.next_page_number }}" class="page-link flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Next</a>
+        </li>
+        <li>
+          <a href="#" data-page="{{ softwares.paginator.num_pages }}" class="page-link flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Last</a>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endif %}
+
+</main>
+
+{% endblock content %}
+
+
+
+
+
+
+

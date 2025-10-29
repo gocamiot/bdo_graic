@@ -1,0 +1,643 @@
+{% extends "layouts/base.html" %}
+{% load static get_attribute %}
+
+{% block content %}
+
+<main class="m-4">
+    <div class="p-4 bg-white block border-b border-gray-200 lg:mt-1.5 dark:bg-gray-800 dark:border-gray-700 rounded-lg">
+
+        <div id="errorMessage" class="hidden p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert"></div>
+       
+        <!-- Loading Spinner -->
+        <div style="z-index: 999;" id="loadingSpinner" class="hidden absolute inset-0 flex items-center justify-center bg-white bg-opacity-50 rounded-lg">
+            <svg aria-hidden="true" class="w-12 h-12 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" viewBox="0 0 100 101" xmlns="http://www.w3.org/2000/svg">
+                <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+                <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
+            </svg>
+            <span class="sr-only">Loading...</span>
+        </div>
+        <!-- End Loading Spinner -->
+
+        <div class="flex justify-between items-center mb-5">
+            <h4 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">Model & View builder</h4>
+            {% if request.GET.view_name  %}
+                <a href="{% if request.GET.view_name|url_has_pattern %}{% url request.GET.view_name %}{% else %}{% url "join_view_404" %}?view_name={{request.GET.view_name}}{% endif %}" class="py-2.5 px-5 me-2 mb-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">Go to the view</a>
+            {% endif %}
+        </div>
+        <form id="createModelForm" class="p-5 bg-white border border-gray-200 rounded-lg dark:bg-gray-800 dark:border-gray-700" method="post">
+            {% csrf_token %}
+            <div class="mb-5">
+                <label for="id_source" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Source</label>
+                <select name="source" {% if request.GET.view_name %} disabled {% endif %} class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" required id="id_source">
+                    <option value="">Choose a source</option>
+                    <option selected value="CSV">CSV</option>
+                    <option value="SQL_QUERY">SQL Query</option>
+                    <option value="SAP_API">SAP API</option>
+                </select>
+            </div>
+            <div class="mb-5">
+                <label for="id_view_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">View Display Name (Max 60 Characters)</label>
+                <input type="text" name="fav_name" {% if request.GET.view_name %} disabled {% endif %} required maxlength="60" class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="View display name" id="id_view_name">
+            </div>
+            <input type="hidden" name="model_name" id="id_model_name">
+            <div class="mb-5">
+                <label for="id_group_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Sidebar Group</label>
+                <select name="group_name" {% if request.GET.view_name %} disabled {% endif %} class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" required id="id_sidebar_group">
+                    <option value="">Choose a sidebar group</option>
+                    {% for group in groups %}
+                        <option {% if group.name == 'IS Auditor' %}selected{% endif %} value="{{ group.name }}">{{ group.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-5">
+                <label for="id_parent_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Sidebar Section</label>
+                <select name="parent_name" {% if request.GET.view_name %} disabled {% endif %} class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" required id="id_sidebar_section">
+                    <option value="">Choose a sidebar section</option>
+                    {% for sidebar in sidebars %}
+                        <option {% if sidebar.name == 'ETL Lists' %}selected{% endif %} value="{{ sidebar.id }}">{{ sidebar.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div id="csv-section" class="mb-5">
+                <label for="id_view_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">File</label>
+                <input type="file" accept=".csv, .xlsx, .xls" {% if request.GET.view_name %} disabled {% endif %} class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400" id="csvFileInput">
+            </div>
+
+            <div id="sap-section" class="mb-5 hidden">
+                <label for="id_sap_api" class="block flex items-center gap-3 mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    SAP APIs
+
+                    <svg id="api-preview-btn" data-modal-target="preview-sap-api-data" data-modal-toggle="preview-sap-api-data" class="hidden w-5 h-5 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
+                    </svg>
+                </label>
+                <select name="sap_api" {% if request.GET.view_name %} disabled {% endif %} class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" id="id_sap_api">
+                    <option value="">Choose an API</option>
+                    {% for api in sap_apis %}
+                        <option value="{{ api.id }}">{{ api.view_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div id="query-section" class="mb-5 hidden">
+                <label for="id_sql_query" class="block flex items-center gap-3 mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    SQL Queries
+
+                    <svg id="query-preview-btn" data-modal-target="preview-sql-query-data" data-modal-toggle="preview-sql-query-data" class="hidden w-5 h-5 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
+                    </svg>
+                </label>
+                <select name="sql_query" {% if request.GET.view_name %} disabled {% endif %} class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" id="id_sql_query">
+                    <option value="">Choose a Query</option>
+                    {% for query in queries %}
+                        <option value="{{ query.id }}">{{ query.view_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div id="headers-container">
+                <!-- Headers will be dynamically inserted here -->
+
+                 <!-- Loading Spinner -->
+                <div style="z-index: 999;" id="fieldLoadingSpinner" class="hidden flex items-center justify-center bg-white bg-opacity-50 rounded-lg">
+                    <svg aria-hidden="true" class="w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" viewBox="0 0 100 101" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+                        <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
+                    </svg>
+                    <span class="sr-only">Loading...</span>
+                </div>
+                <!-- End Loading Spinner -->
+                 
+            </div>  
+            
+            <div class="select_csv_file mb-5">
+                <label for="id_ro_fields" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Read Only Fields</label>
+                <div class="relative flex items-center ml-auto space-x-2 sm:space-x-3">
+                    <button id="dropdownROFieldsButton" data-dropdown-toggle="dropdownROFieldsCheckbox" class="inline-flex items-center justify-between w-full px-2 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700" type="button">
+                        Select fields
+                        <svg class="w-2.5 h-2.5 ml-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+                        </svg>
+                    </button>
+                    <div id="dropdownROFieldsCheckbox" class="absolute min-w-full z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow dark:bg-gray-700 dark:divide-gray-600">
+                        <ul id="dropdownROFieldsList" class="p-3 space-y-3 text-sm text-gray-700 dark:text-gray-200 max-h-60 overflow-y-auto"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="select_csv_file mb-5">
+                <label for="id_compulsory_fields" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Compulsory Fields</label>
+                <div class="relative flex items-center ml-auto space-x-2 sm:space-x-3">
+                    <button id="dropdownCompulsoryFieldsButton" data-dropdown-toggle="dropdownCompulsoryFieldsCheckbox" class="inline-flex items-center justify-between w-full px-2 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700" type="button">
+                        Select fields
+                        <svg class="w-2.5 h-2.5 ml-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+                        </svg>
+                    </button>
+                    <div id="dropdownCompulsoryFieldsCheckbox" class="absolute min-w-full z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow dark:bg-gray-700 dark:divide-gray-600">
+                        <ul id="dropdownCompulsoryFieldsList" class="p-3 space-y-3 text-sm text-gray-700 dark:text-gray-200 max-h-60 overflow-y-auto"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="select_csv_file mb-5">
+                <label for="id_precol_fields" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Pre Columns</label>
+                <div class="relative flex items-center ml-auto space-x-2 sm:space-x-3">
+                    <button id="dropdownPreColFieldsButton" data-dropdown-toggle="dropdownPreColFieldsCheckbox" class="inline-flex items-center justify-between w-full px-2 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700" type="button">
+                        Select fields
+                        <svg class="w-2.5 h-2.5 ml-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+                        </svg>
+                    </button>
+                    <div id="dropdownPreColFieldsCheckbox" class="absolute min-w-full z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow dark:bg-gray-700 dark:divide-gray-600">
+                        <ul id="dropdownPreColFieldsList" class="p-3 space-y-3 text-sm text-gray-700 dark:text-gray-200 max-h-60 overflow-y-auto"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" {% if request.GET.view_name %} disabled {% endif %} id="submitButton" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Create</button>
+        </form>
+    </div>
+</main>
+
+
+
+<!-- Preview SAP API -->
+<div id="preview-sap-api-data" tabindex="-1" aria-hidden="true" class="py-5 fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-5xl max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <!-- Modal header -->
+            <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <div>
+                  <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    Preview SAP API 
+                  </h3>
+                </div>
+                <div>
+                  <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="preview-sap-api-data">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                  </button>
+                </div>
+            </div>
+            <!-- Modal body -->
+            <div style="height: 80vh;" class="p-6 space-y-6 overflow-y-auto">
+              <div class="flex flex-col">
+                <div class="overflow-x-auto">
+                  <div class="inline-block min-w-full align-middle">
+                    <div class="overflow-hidden table-wrp shadow">
+                        <table class="min-w-full divide-y divide-gray-200 table-fixed dark:divide-gray-600">
+                            <thead class="bg-gray-100 dark:bg-gray-700">
+                              <tr></tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700"></tbody>
+                        </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Preview SQL Query -->
+<div id="preview-sql-query-data" tabindex="-1" aria-hidden="true" class="py-5 fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-5xl max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <!-- Modal header -->
+            <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <div>
+                  <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    Preview SQL Query 
+                  </h3>
+                </div>
+                <div>
+                  <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="preview-sql-query-data">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                  </button>
+                </div>
+            </div>
+            <!-- Modal body -->
+            <div style="height: 80vh;" class="p-6 space-y-6 overflow-y-auto">
+              <div class="flex flex-col">
+                <div class="overflow-x-auto">
+                  <div class="inline-block min-w-full align-middle">
+                    <div class="overflow-hidden table-wrp shadow">
+                        <table class="min-w-full divide-y divide-gray-200 table-fixed dark:divide-gray-600">
+                            <thead class="bg-gray-100 dark:bg-gray-700">
+                              <tr></tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700"></tbody>
+                        </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+
+{% block extra_js %}
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const spinner = document.getElementById('loadingSpinner');
+        const submitButton = document.getElementById('submitButton');
+        const errorMessageDiv = document.getElementById('errorMessage');
+
+        function displayErrorMessage(message) {
+            spinner.classList.add('hidden');
+            submitButton.disabled = false;
+            errorMessageDiv.textContent = message;
+            errorMessageDiv.classList.remove('hidden');
+        }
+        document.getElementById("createModelForm").addEventListener("submit", function (event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+
+            errorMessageDiv.classList.add('hidden');
+            errorMessageDiv.textContent = '';
+
+            spinner.classList.remove('hidden');
+            submitButton.disabled = true;
+
+            fetch("{% url 'model_builder' %}", {
+                method: "POST",
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === "pending") {
+                        setTimeout(() => {
+                            window.location.href = window.location.pathname + `?view_name=${encodeURIComponent(data.view_name)}`;
+                        }, 25000)
+                    } else if (data.status === "error") {
+                        displayErrorMessage(data.message || "An error occurred. Please refresh the page and try again.");
+                    } else {
+                        displayErrorMessage("An unexpected error occurred. Please refresh the page and try again.");
+                    }
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    displayErrorMessage("A network error occurred. Please check your connection and try again.");
+                });
+        });
+    });
+</script>
+
+
+<script>
+    document.getElementById("id_view_name").addEventListener("input", function() {
+        let formattedValue = this.value
+            .replace(/\s+/g, "")
+            .replace(/[^a-zA-Z0-9]/g, "");
+    
+        document.getElementById("id_model_name").value = formattedValue;
+    });    
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const fileInput = document.getElementById('csvFileInput');
+        const headersContainer = document.getElementById("headers-container");
+        const selectCSVFile = document.querySelectorAll('.select_csv_file');
+        const sapSelect = document.getElementById('id_sap_api');
+        const querySelect = document.getElementById('id_sql_query');
+        
+        // Dropdown Elements
+        const dropdownROFieldsList = document.getElementById('dropdownROFieldsList');
+        const dropdownCompulsoryFieldsList = document.getElementById('dropdownCompulsoryFieldsList');
+        const dropdownPreColFieldsList = document.getElementById('dropdownPreColFieldsList');
+
+        const dropdownROFieldsButton = document.getElementById('dropdownROFieldsButton');
+        const dropdownCompulsoryFieldsButton = document.getElementById('dropdownCompulsoryFieldsButton');
+        const dropdownPreColFieldsButton = document.getElementById('dropdownPreColFieldsButton');
+
+        selectCSVFile.forEach(field => field.style.display = 'none');
+
+        function updateButtonText(button, checkboxes) {
+            const selectedFields = Array.from(checkboxes)
+                .filter(checkbox => checkbox.checked)
+                .map(checkbox => checkbox.nextElementSibling.textContent)
+                .join(', ');
+
+            button.textContent = selectedFields || 'Select fields';
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            const fieldSpinner = document.getElementById('fieldLoadingSpinner');
+            fieldSpinner.classList.remove('hidden');
+
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch("{% url 'process_file' %}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': getCSRFToken()
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.headers) {
+                    selectCSVFile.forEach(field => field.style.display = 'block');
+
+                    populateDropdown(dropdownROFieldsList, dropdownROFieldsButton, data.headers, 'ro_fields');
+                    populateDropdown(dropdownCompulsoryFieldsList, dropdownCompulsoryFieldsButton, data.headers, 'compulsory_fields');
+                    populateDropdown(dropdownPreColFieldsList, dropdownPreColFieldsButton, data.headers, 'precol_fields');
+
+                    populateHeaders(data.headers);
+                    fieldSpinner.classList.add('hidden');
+                }
+            })
+            .catch(error => console.error('Error processing file:', error));
+        }
+
+        sapSelect.addEventListener('change', function () {
+            const fieldSpinner = document.getElementById('fieldLoadingSpinner');
+            fieldSpinner.classList.remove('hidden');
+            const apiId = sapSelect.value;
+            if (!apiId) return;
+
+            fetch(`/sap-api-headers/${apiId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.headers) {
+                        selectCSVFile.forEach(field => field.style.display = 'block');
+                        
+                        populateDropdown(dropdownROFieldsList, dropdownROFieldsButton, data.headers, 'ro_fields');
+                        populateDropdown(dropdownCompulsoryFieldsList, dropdownCompulsoryFieldsButton, data.headers, 'compulsory_fields');
+                        populateDropdown(dropdownPreColFieldsList, dropdownPreColFieldsButton, data.headers, 'precol_fields');
+
+                        populateHeaders(data.headers);
+
+                        fieldSpinner.classList.add('hidden');
+                    } else {
+                        console.warn('No headers found in SAP response.');
+                    }
+                })
+                .catch(error => console.error('Error fetching SAP API headers:', error));
+            
+            fetch(`/sap-api-data/${apiId}/`)
+                .then(response => response.json())
+                .then(data => { 
+                    const tableHead = document.querySelector(`#preview-sap-api-data thead tr`);
+                    const tableBody = document.querySelector(`#preview-sap-api-data tbody`);
+                    const apiPreviewBtn = document.getElementById('api-preview-btn');
+                    apiPreviewBtn.classList.remove('hidden');
+    
+                    tableHead.innerHTML = '';
+                    tableBody.innerHTML = '';
+    
+                    const headers = data.headers;
+                    const rows = data.rows;
+    
+                    if (headers.length === 0 || rows.length === 0) {
+                        tableBody.innerHTML = '<tr><td colspan="100%" class="text-center px-6 py-4">No data available</td></tr>';
+                        return;
+                    }
+    
+                    headers.forEach(header => {
+                        const th = document.createElement('th');
+                        th.className = 'px-3 py-3';
+                        th.textContent = header;
+                        tableHead.appendChild(th);
+                    });
+    
+                    rows.forEach(row => {
+                        const tr = document.createElement('tr');
+                        tr.className = 'bg-white border-b dark:bg-gray-800 dark:border-gray-700';
+    
+                        headers.forEach(header => {
+                            const td = document.createElement('td');
+                            td.className = 'px-3 py-1';
+                            td.textContent = row[header];
+                            tr.appendChild(td);
+                        });
+    
+                        tableBody.appendChild(tr);
+                    });
+                })
+                .catch(error => console.error('Error fetching SAP API data:', error));
+
+        });
+
+        querySelect.addEventListener('change', function () {
+            const fieldSpinner = document.getElementById('fieldLoadingSpinner');
+            fieldSpinner.classList.remove('hidden');
+            const queryId = querySelect.value;
+            if (!queryId) return;
+
+            fetch(`/sql-query-headers/${queryId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.headers) {
+                        selectCSVFile.forEach(field => field.style.display = 'block');
+                        
+                        populateDropdown(dropdownROFieldsList, dropdownROFieldsButton, data.headers, 'ro_fields');
+                        populateDropdown(dropdownCompulsoryFieldsList, dropdownCompulsoryFieldsButton, data.headers, 'compulsory_fields');
+                        populateDropdown(dropdownPreColFieldsList, dropdownPreColFieldsButton, data.headers, 'precol_fields');
+
+                        populateHeaders(data.headers);
+
+                        fieldSpinner.classList.add('hidden');
+                    } else {
+                        console.warn('No headers found in SQL Query response.');
+                    }
+                })
+                .catch(error => console.error('Error fetching SQL Query headers:', error));
+            
+
+            fetch(`/sql-query-data/${queryId}/`)
+                .then(response => response.json())
+                .then(data => { 
+                    const tableHead = document.querySelector(`#preview-sql-query-data thead tr`);
+                    const tableBody = document.querySelector(`#preview-sql-query-data tbody`);
+                    const queryPreviewBtn = document.getElementById('query-preview-btn');
+                    queryPreviewBtn.classList.remove('hidden');
+    
+                    tableHead.innerHTML = '';
+                    tableBody.innerHTML = '';
+    
+                    const headers = data.headers;
+                    const rows = data.rows;
+    
+                    if (headers.length === 0 || rows.length === 0) {
+                        tableBody.innerHTML = '<tr><td colspan="100%" class="text-center px-6 py-4">No data available</td></tr>';
+                        return;
+                    }
+    
+                    headers.forEach(header => {
+                        const th = document.createElement('th');
+                        th.className = 'px-3 py-3';
+                        th.textContent = header;
+                        tableHead.appendChild(th);
+                    });
+    
+                    rows.forEach(row => {
+                        const tr = document.createElement('tr');
+                        tr.className = 'bg-white border-b dark:bg-gray-800 dark:border-gray-700';
+    
+                        headers.forEach(header => {
+                            const td = document.createElement('td');
+                            td.className = 'px-3 py-1';
+                            td.textContent = row[header];
+                            tr.appendChild(td);
+                        });
+    
+                        tableBody.appendChild(tr);
+                    });
+                })
+                .catch(error => console.error('Error fetching SQL Query data:', error));
+        })
+
+        function populateDropdown(targetList, button, fields, name) {
+            button.textContent = 'Select fields';
+            targetList.innerHTML = '';
+
+            fields.forEach((field, index) => {
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `
+                    <div class="flex items-center">
+                        <input id="${name}-checkbox-${index}" type="checkbox" value="${field}" name="${name}" class="view-fields w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
+                        <label for="${name}-checkbox-${index}" class="ml-2 text-sm font-medium text-gray-900 dark:text-white">${field}</label>
+                    </div>
+                `;
+                targetList.appendChild(listItem);
+
+                const checkbox = listItem.querySelector('input[type="checkbox"].view-fields');
+                checkbox.addEventListener('change', () => {
+                    const checkboxes = targetList.querySelectorAll('input[type="checkbox"].view-fields');
+                    updateButtonText(button, checkboxes);
+                });
+            });
+        }
+
+        function populateHeaders(headers) {
+            headersContainer.innerHTML = ""; 
+
+            if (headers.length > 0) {
+                headers.forEach(header => {
+                    let headerRow = `
+                        <div class="grid grid-cols-7 gap-5 mb-5">
+                            <div class="col-span-2">
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Model Field Name</label>
+                                <input readonly type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" name="columns_${header}" value="${header}">
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">DB Column Name</label>
+                                <input type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" name="db_columns_${header}" value="${header}">
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">${header} Type</label>
+                                <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" name="columns_${header}_type" id="${header}_type">
+                                    <option value="TextField">TextField</option>
+                                    <option value="CharField">CharField</option>
+                                    <option value="IntegerField">IntegerField</option>
+                                    <option value="FloatField">FloatField</option>
+                                    <option value="DateField">DateField</option>
+                                    <option value="BigIntegerField">BigIntegerField</option>
+                                    <option value="UnixDates">UnixDates</option>
+                                    <option value="ADUnixDates">ADUnixDates</option>
+                                </select>
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Encrypted Field</label>
+                                <input type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" name="encryption_${header}" id="${header}_encryption_field">
+                            </div>
+                        </div>
+                    `;
+                    headersContainer.innerHTML += headerRow;
+                });
+            } else {
+                headersContainer.innerHTML = "<p class='text-red-500'>No headers found in the file.</p>";
+            }
+        }
+
+        function getCSRFToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]').value;
+        }
+
+        fileInput.addEventListener('change', handleFileUpload);
+    });
+</script>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const sourceSelect = document.getElementById('id_source');
+        const csvSection = document.getElementById('csv-section');
+        const sapSection = document.getElementById('sap-section');
+        const querySection = document.getElementById('query-section');
+        const csvInput = document.getElementById('csvFileInput');
+        const sapSelect = document.getElementById('id_sap_api');
+        const querySelect = document.getElementById('id_sql_query');
+
+        function toggleSections() {
+            const selectedValue = sourceSelect.value;
+
+            if (selectedValue === 'CSV') {
+                csvSection.classList.remove('hidden');
+                sapSection.classList.add('hidden');
+                querySection.classList.add('hidden');
+                csvInput.required = true;
+                sapSelect.required = false;
+                querySelect.required = false;
+            } else if (selectedValue === 'SAP_API') {
+                csvSection.classList.add('hidden');
+                sapSection.classList.remove('hidden');
+                querySection.classList.add('hidden');
+                csvInput.required = false;
+                sapSelect.required = true;
+                querySelect.required = false;
+            } else if (selectedValue === 'SQL_QUERY') {
+                csvSection.classList.add('hidden');
+                sapSection.classList.add('hidden');
+                querySection.classList.remove('hidden');
+                csvInput.required = false;
+                sapSelect.required = false;
+                querySelect.required = true;
+            } else {
+                csvSection.classList.add('hidden');
+                sapSection.classList.add('hidden');
+                querySection.classList.add('hidden');
+                csvInput.required = false;
+                sapSelect.required = false;
+                querySelect.required = false;
+            }
+        }
+
+        sourceSelect.addEventListener('change', toggleSections);
+        toggleSections();
+    });
+</script>
+    
+
+
+{% endblock extra_js %}

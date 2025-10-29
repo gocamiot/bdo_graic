@@ -1,0 +1,57 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>GRC Server</title>
+    <meta name="description"
+        content="https://www.bdo.global/en-gb/home">
+
+    <link rel="stylesheet" href="{% static 'dist/main.css' %}">
+</head>
+
+<body>
+    <nav class="bg-white border-gray-200 px-0 sm:px-2 py-2 rounded dark:bg-gray-900">
+        <div class="container flex flex-wrap justify-between items-center mx-auto">
+            <a href="" class="flex items-center">     
+                {% comment %} <img src="{% static '/dist/images/bdo_logo.png' %}" class="h-35 sm:h-35" alt="Intercon Computer Services"> {% endcomment %}
+                <img src="{% static '/dist/images/bdo_logo.png' %}" style="height: 90px; padding-top: 10px;" alt="Intercon Computer Services">
+                <span class="self-center text-xl font-semibold whitespace-nowrap dark:text-white"></span>
+            </a>
+        </div>
+    </nav>
+
+    <section class="bg-white dark:bg-gray-900">
+        <div class="grid py-2 px-4 mx-auto max-w-screen-xl lg:gap-8 xl:gap-0 lg:py-4 lg:grid-cols-12">
+            <div class="place-self-center mr-4 lg:col-span-7">
+                <p class="mb-1 max-w-2xl font-light text-gray-500 lg:mb-2 md:text-lg lg:text-xl dark:text-gray-400">
+                    <strong>Governance, Risk and Compliance Re-imagined with grAIc</strong>.
+                </p>
+                <h1 class="mb-4 max-w-2xl text-4xl font-bold tracking-tight leading-none md:text-5xl xl:text-6xl dark:text-white">
+                    GRC Vault
+                </h1>
+                <a href="/index"
+                style="background-color:#528ef0;"
+                class="inline-flex justify-center items-center py-3 px-5 mr-3 text-base font-medium text-center text-white rounded-lg hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-900">
+                Go
+                    <svg class="ml-2 -mr-1 w-5 h-5" fill="currentColor" viewBox="0 0 20 20"
+                            xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd"
+                                d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+                                clip-rule="evenodd"></path>
+                    </svg>
+                </a>
+            </div>
+            <div class="hidden lg:mt-0 lg:col-span-5 lg:flex mt-0">
+                <img src="{% static '/dist/images/grc_picture2.png' %}" alt="My image" class="max-w-full h-auto">
+            </div>
+        </div>
+    </section>
+    <script src="{% static 'dist/main.bundle.js' %}"></script>
+</body>
+</html>

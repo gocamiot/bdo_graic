@@ -1,0 +1,21 @@
+from django.urls import path
+
+from apps.tables.VIEW_NAME import VIEW_NAME_views as views
+
+urlpatterns = [
+    path('VIEW_NAME/', views.VIEW_NAME, name="VIEW_NAME"),
+    path('create_VIEW_NAME/', views.create_VIEW_NAME, name="create_VIEW_NAME"),
+    path('create-URL_NAME-filter/', views.create_VIEW_NAME_filter, name="create_VIEW_NAME_filter"),
+    path('create-URL_NAME-page-items/', views.create_VIEW_NAME_page_items, name="create_VIEW_NAME_page_items"),
+    path('create-URL_NAME-hide-show-items/', views.create_VIEW_NAME_hide_show_filter, name="create_VIEW_NAME_hide_show_filter"),
+    path('delete-URL_NAME-filter/<int:id>/', views.delete_VIEW_NAME_filter, name="delete_VIEW_NAME_filter"),
+    path('delete-URL_NAME-daterange-filter/<int:id>/', views.delete_VIEW_NAME_daterange_filter, name="delete_VIEW_NAME_daterange_filter"),
+    path('delete-URL_NAME-intrange-filter/<int:id>/', views.delete_VIEW_NAME_intrange_filter, name="delete_VIEW_NAME_intrange_filter"),
+    path('delete-URL_NAME-floatrange-filter/<int:id>/', views.delete_VIEW_NAME_floatrange_filter, name="delete_VIEW_NAME_floatrange_filter"),
+    path('delete-URL_NAME/<int:id>/', views.delete_VIEW_NAME, name="delete_VIEW_NAME"),
+    path('update-URL_NAME/<int:id>/', views.update_VIEW_NAME, name="update_VIEW_NAME"),
+
+    path('export-URL_NAME-csv/', views.ExportCSVView.as_view(), name='export_VIEW_NAME_csv'),
+    path('export-URL_NAME-excel/', views.ExportExcelView.as_view(), name='export_VIEW_NAME_excel'),
+    path('export-URL_NAME-pdf/', views.ExportPDFView.as_view(), name='export_VIEW_NAME_pdf'),
+]

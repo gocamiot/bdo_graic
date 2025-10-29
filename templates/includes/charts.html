@@ -1,0 +1,196 @@
+<script>
+  function getDeviceLineChart(consolidatedBarData) {
+    const uniqueCategories = [...new Set(consolidatedBarData.map(cat => {
+      const timestamp = cat.date;
+      const date = new Date(timestamp * 1000);
+      const formattedDate = date.toISOString().split('T')[0];
+      return formattedDate;
+    }))];
+
+    uniqueCategories.sort();
+
+    var options = {
+      chart: {
+        type: "area",
+        stacked: false,
+        height: 350,
+        zoom: {
+          type: "x",
+          enabled: true
+        },
+        toolbar: {
+          autoSelected: "zoom"
+        }
+      },
+      dataLabels: {
+        enabled: false
+      },
+      series: [],
+      markers: {
+        size: 0
+      },
+      title: {
+        text: "New users",
+        align: "left",
+        style: {
+          color:  '#546E7A'
+        },
+      },
+      fill: {
+        type: "gradient",
+        gradient: {
+          shadeIntensity: 1,
+          inverseColors: false,
+          opacityFrom: 0.5,
+          opacityTo: 0,
+          stops: [0, 90, 100]
+        }
+      },
+      legend: {
+        labels: {
+          colors: uniqueCategories.map(color => '#546E7A'),
+        },
+      },
+      xaxis: {
+        type: 'category',
+        categories: uniqueCategories,
+        labels: {
+          style: {
+            colors: uniqueCategories.map(color => '#546E7A'),
+            fontWeight: 500,
+          },
+        }
+      },
+      tooltip: {
+        shared: false,
+        y: {
+          formatter: function (val) {
+            return val;
+          }
+        }
+      }
+    };
+
+    const groupedData = consolidatedBarData.reduce((result, data) => {
+      const deviceType = data.deviceType;
+
+      if (!result[deviceType]) {
+        result[deviceType] = {
+          name: deviceType,
+          data: []
+        };
+      }
+
+      result[deviceType].data.push(data.y);
+
+      return result;
+    }, {});
+
+    options.series = Object.values(groupedData);
+
+    return options;
+  }
+
+  function getDeviceBarChart(consolidatedBarData) {
+    const theme = localStorage.getItem('color-theme')
+    
+    const uniqueCategories = consolidatedBarData;
+    
+    var options = {
+      series: [],
+      chart: {
+        height: 350,
+        type: 'bar',
+      },
+      plotOptions: {
+        bar: {
+          borderRadius: 0,
+          dataLabels: {
+            position: 'top',
+          },
+        }
+      },
+      title: {
+        text: "Operating System",
+        align: "left",
+        style: {
+          color:  '#546E7A'
+        },
+      },
+      dataLabels: {
+        enabled: true,
+        formatter: function (val) {
+          return val;
+        },
+        offsetY: -20,
+        style: {
+          fontSize: '12px',
+          colors: uniqueCategories.map(color => '#546E7A'),
+        }
+      },
+      legend: {
+        labels: {
+          colors: uniqueCategories.map(color => '#546E7A'),
+        },
+      },
+      xaxis: {
+        categories: uniqueCategories.map(cat => cat.x),
+        position: 'bottom',
+        axisBorder: {
+          show: false
+        },
+        tooltip: {
+          enabled: true,
+        },
+        labels: {
+          style: {
+            colors: uniqueCategories.map(color => '#546E7A'),
+            fontWeight: 500,
+          },
+        }
+      },
+      tooltip: {
+        enabled: true,
+      }
+    };
+
+    const groupedData = consolidatedBarData.reduce((result, data) => {
+      const deviceType = data.deviceType;
+
+      if (!result[deviceType]) {
+        result[deviceType] = {
+          name: deviceType,
+          data: []
+        };
+      }
+
+      result[deviceType].data.push(data.y);
+
+      return result;
+    }, {});
+
+    options.series = Object.values(groupedData);
+
+    return options;
+  }
+
+
+  (async () => {
+    const response = await fetch('/charts/get-device-data/');
+    const data = await response.json();
+
+    const deviceLineChart = new ApexCharts(document.getElementById('device-line-chart'), getDeviceLineChart(data.consolidatedChartData));
+    deviceLineChart.render();
+
+  })();
+
+
+  (async () => {
+    const response = await fetch('/charts/get-operating-data/');
+    const data = await response.json();
+
+    const deviceBarChart = new ApexCharts(document.getElementById('device-bar-chart'), getDeviceBarChart(data.consolidatedChartData));
+    deviceBarChart.render();
+  })();
+
+</script>

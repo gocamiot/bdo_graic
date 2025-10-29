@@ -1,0 +1,23 @@
+{% extends "layouts/base.html" %}
+{% load wagtailcore_tags  wagtailimages_tags wagtailembeds_tags %}
+
+{% block extrastyle %}
+
+<style>
+</style>
+
+{% endblock extrastyle %}
+
+{% block content %}
+
+<main>
+    <div class="px-4 pt-6">
+        {% image page.thumbnail scale-100 as blog_thumbnail %}
+        <img class="h-96 w-full object-cover" src="{{ blog_thumbnail.url }}" alt="">
+        <h4 class="text-4xl font-bold tracking-tight text-gray-900 dark:text-white my-2">{{ page.title }}</h4>
+        <span class="block mb-5 font-light text-gray-500 dark:text-gray-400">{{ page.short_content }}</span>
+        <span class="block mb-5 font-light text-gray-500 dark:text-gray-400">{{ page.content|richtext }}</span>
+    </div>
+</main>
+
+{% endblock content %}

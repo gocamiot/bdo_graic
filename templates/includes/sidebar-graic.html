@@ -1,0 +1,91 @@
+{% load static i18n get_attribute replace_value %}
+{% get_current_language as LANGUAGE_CODE %}
+{% get_available_languages as LANGUAGES %}
+{% get_language_info_list for LANGUAGES as languages %}
+
+<ul class="pb-2 space-y-2">
+    <li>
+        <form action="#" method="GET" class="lg:hidden">
+            <label for="mobile-search" class="sr-only">Search</label>
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <svg class="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd"
+                            d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+                <input type="text" name="email" id="mobile-search"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full pl-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-200 dark:focus:ring-primary-500 dark:focus:border-primary-500"
+                    placeholder="Global search">
+            </div>
+        </form>
+    </li>
+    <div class="flex justify-end">
+        <button id="sidebar-collapse" data-tooltip-target="tooltip-sidebar" type="button" data-tooltip-placement="right"
+            class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5">
+            <svg class="w-5 h-5 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 17 14">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 1h15M1 7h15M1 13h15"/>
+            </svg>
+        </button>
+        <div id="tooltip-sidebar" role="tooltip"
+            class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-sm opacity-0 tooltip">
+            Toggle sidebar
+            <div class="tooltip-arrow" data-popper-arrow></div>
+        </div>
+    </div>
+
+    <li>
+        <div class="sidebar-full flex items-center mb-3 p-2 text-base text-gray-900 rounded-lg hover:bg-gray-100 group dark:text-gray-200 dark:hover:bg-gray-700 {% if '' == segment %} bg-gray-100 dark:bg-gray-700 {% endif %}">
+            <a href="{% url "graic_chat_index" %}"
+                class="flex items-center w-full text-gray-900 font-medium text-sm transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+            >
+                {% comment %} <img src="{% static "dist/img/graic.jpg" %}"  class="rounded-lg w-6 h-6" alt=""> {% endcomment %}
+                <svg class="w-5 h-5 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m14.304 4.844 2.852 2.852M7 7H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4.5m2.409-9.91a2.017 2.017 0 0 1 0 2.853l-6.844 6.844L8 14l.713-3.565 6.844-6.844a2.015 2.015 0 0 1 2.852 0Z"/>
+                </svg>
+                <span class="flex-1 ml-1 text-left whitespace-nowrap" sidebar-toggle-item>New Chat</span>
+            </a>
+        </div>                             
+    <li>
+
+    {% regroup chats by humanized_date as date_list %}
+
+    {% for date_group in date_list %}
+        <li class="sidebar-full px-2 text-sm font-medium text-gray-700 dark:text-gray-300 pt-3">
+            {{ date_group.grouper }}
+        </li>
+
+        {% for chat in date_group.list %}
+        <li>
+            <div class="sidebar-full flex items-center justify-between p-2 text-gray-900 rounded-lg hover:bg-gray-100 group dark:text-gray-200 dark:hover:bg-gray-700 {% if chat.pk == segment %} bg-gray-100 dark:bg-gray-700 {% endif %}">
+                
+                <a href="{% url "graic_chat" chat.uuid %}"
+                class="flex items-center flex-1 text-gray-900 font-medium text-sm transition duration-75 rounded-lg group-hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700">
+                    <img src="{% static "dist/img/graic.jpg" %}" class="rounded-lg w-5 h-5" alt="">
+                    <span class="flex-1 ml-3 text-left whitespace-nowrap">
+                        {{ chat.title|slice:":20" }}{% if chat.title|length > 20 %}...{% endif %}
+                    </span>
+                </a>
+
+                <form method="POST" action="{% url 'graic_chat_delete' chat.uuid %}" class="ml-2">
+                    {% csrf_token %}
+                    <button type="submit" 
+                            class="text-red-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" 
+                            width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                            <path fill-rule="evenodd" 
+                                d="M8.586 2.586A2 2 0 0 1 10 2h4a2 2 0 0 1 2 2v2h3a1 1 0 1 1 0 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8a1 1 0 0 1 0-2h3V4a2 2 0 0 1 .586-1.414ZM10 6h4V4h-4v2Zm1 4a1 1 0 1 0-2 0v8a1 1 0 1 0 2 0v-8Zm4 0a1 1 0 1 0-2 0v8a1 1 0 1 0 2 0v-8Z" 
+                                clip-rule="evenodd"/>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </li>
+        {% endfor %}
+    {% endfor %}
+
+
+
+</ul>

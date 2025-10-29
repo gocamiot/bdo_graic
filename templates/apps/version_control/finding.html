@@ -1,0 +1,328 @@
+{% extends "layouts/base.html" %}
+{% load static get_attribute file_extension replace_value %}
+
+{% block extrastyle %}
+
+<style>
+  .table-wrp  {
+    max-height: 75vh;
+    overflow-y: auto;
+    display:block;
+  }
+  thead{
+    position:sticky;
+    top:0
+  }
+</style>
+
+{% endblock extrastyle %}
+
+{% block content %}
+
+
+<main>
+  <div
+    class="p-4 bg-white block sm:flex items-center justify-between border-b border-gray-200 lg:mt-1.5 dark:bg-gray-800 dark:border-gray-700">
+    <div class="w-full mb-1">
+      <div class="mb-4">
+
+        <ul class="mb-7 flex flex-wrap text-sm font-medium text-center text-gray-500 border-b border-gray-200 dark:border-gray-700 dark:text-gray-400">
+          <li class="me-2">
+            <a href="{% url "finding" %}" class="inline-block p-4 rounded-t-lg hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-gray-300">Actions</a>
+          </li>
+          <li class="me-2">
+              <a href="#" aria-current="page" class="inline-block p-4 text-blue-600 bg-gray-100 rounded-t-lg active dark:bg-gray-600 dark:text-white">Versions</a>
+          </li>
+        </ul>
+
+
+        <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">
+          Versions  
+        </h1>
+      </div>
+    </div>
+  </div>
+  <div class="flex flex-col">
+    <div style="transform:rotateX(180deg);" class="overflow-x-auto">
+      <div style="transform:rotateX(180deg);" class="inline-block min-w-full align-middle">
+        <div class="overflow-hidden table-wrp shadow">
+          <table class="min-w-full divide-y divide-gray-200 table-fixed dark:divide-gray-600">
+            <thead class="bg-gray-100 dark:bg-gray-700">
+              <tr>
+                <th scope="col" class="p-2">
+                  <div class="flex items-center">
+                    <input id="checkbox-all" aria-describedby="checkbox-1" type="checkbox"
+                      class="w-4 h-4 border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:focus:ring-primary-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                    <label for="checkbox-all" class="sr-only">checkbox</label>
+                  </div>
+                </th>
+                
+                {% for field in db_field_names %}
+                    {% if field not in pre_column %}
+                    <th title="{{ field }}" id="th_{{ field }}" scope="col" class="p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                        <div class="group flex items-center gap-2 whitespace-nowrap h-6 w-48">
+                            <span class="block whitespace-nowrap overflow-hidden">{{ field }}</span>
+                            <div class="hidden group-hover:inline-block">
+                                <a class="order-link" data-order="{{ field }}" href="#">
+                                    <img class="w-3" src="{% static "dist/images/up-arrow.png" %}" alt="">
+                                </a>
+                                <a class="order-link" data-order="-{{ field }}" href="#">
+                                    <img class="w-3" src="{% static "dist/images/arrow-down.png" %}" alt="">
+                                </a>
+                            </div>
+                        </div>
+                    </th>
+                    {% endif %}
+                {% endfor %}
+
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+
+              {% for software in softwares %}
+              <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+
+                <td class="w-4 p-2">
+                  <div class="flex items-center">
+                    <input id="checkbox-194556" aria-describedby="checkbox-1" type="checkbox"
+                      class="w-4 h-4 border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:focus:ring-primary-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                    <label for="checkbox-194556" class="sr-only">checkbox</label>
+                  </div>
+                </td>
+
+
+                {% for field_name in db_field_names %}
+                    {% if field_name not in pre_column %}
+                      {% if field_name in richtext_fields %}
+                      <td class="td_{{ field_name }} p-4 text-base font-medium text-gray-900 dark:text-white">
+                        <div class="prose w-96">{{ software|getrichtextattribute:field_name|safe }}</div>
+                      </td>
+                      {% elif field_name in dropdown_fields %}
+                      <td class="td_{{ field_name }} p-4 text-base font-medium text-gray-900 dark:text-white">
+                        <div class="prose w-96">{{ software|getdropdownattribute:field_name }}</div>
+                      </td>
+                      {% else %}
+                      <td class="td_{{ field_name }} p-2 text-sm font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                      {{ software|getattribute:field_name }}
+                      </td>
+                      {% endif %}
+                    {% endif %}
+                {% endfor %}
+
+              </tr>
+
+              {% endfor %}
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+  {% if softwares.has_other_pages %}
+  <nav aria-label="Page navigation example" class="mt-5 ml-4">
+    <ul class="inline-flex -space-x-px text-base h-10">
+      {% if softwares.has_previous %}
+        <li>
+          <a href="#" data-page="1" class="page-link flex items-center justify-center px-4 h-10 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">First</a>
+        </li>
+        <li>
+          <a href="#" data-page="{{ softwares.previous_page_number }}" class="page-link flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Prev</a>
+        </li>
+      {% endif %}
+
+      {% for n in softwares.paginator.page_range %}
+        {% if softwares.number == n %}
+          <li>
+            <span class="flex items-center justify-center px-4 h-10 text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white">{{ n }}<span class="sr-only"></span></span>
+          </li>
+        {% elif n > softwares.number|add:'-3' and n < softwares.number|add:'3' %}
+          <li>
+            <a class="page-link flex items-center justify-center px-4 h-10 leading-tight {% if softwares.number == i %}text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white{% else %}text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white{% endif %}" data-page="{{ n }}" href="#">
+              {{ n }}
+            </a>
+          </li>
+        {% endif %}
+      {% endfor %}
+      
+      {% if softwares.has_next %}
+        <li>
+          <a href="#" data-page="{{ softwares.next_page_number }}" class="page-link flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Next</a>
+        </li>
+        <li>
+          <a href="#" data-page="{{ softwares.paginator.num_pages }}" class="page-link flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Last</a>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endif %}
+
+
+
+  <!-- Add Product Drawer -->
+  <div class="pb-5 fixed left-0 right-0 z-50 items-center justify-center hidden overflow-x-hidden overflow-y-auto top-4 md:inset-0 h-modal sm:h-full" id="add-software-modal">
+    <div class="relative w-full h-full max-w-4xl px-4 md:h-auto">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            <!-- Modal header -->
+            <div class="flex items-start justify-between p-5 border-b rounded-t dark:border-gray-700">
+                <h3 class="text-xl font-semibold dark:text-white">
+                    Add new item
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-toggle="add-software-modal">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>  
+                </button>
+            </div>
+            <!-- Modal body -->
+            <div style="height: 70vh;" class="p-6 space-y-6 overflow-y-auto">
+                {% comment %} <form method="post" action="{% url "create_governance_and_risk" %}"> {% endcomment %}
+                  {% csrf_token %}
+
+                  <div class="grid grid-cols-6 gap-6">
+                    {% for field_name in db_field_names %}
+                      {% if not field_name in pre_column %}
+                        {% if not field_name in COMBOS %}
+                          {% if not field_name in date_picker_fields %}
+                          <div class="col-span-6 sm:col-span-3">
+                              <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name }} {% if field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                              <textarea {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} name="{{ field_name }}" cols="40" rows="1" placeholder="{{ field_name }}" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="id_{{ field_name }}"></textarea>
+                          </div>
+                          {% else %}
+                          <div class="col-span-6 sm:col-span-3">
+                            <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name }} {% if field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %}</label>
+                            <input {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} type="datetime-local" name="{{ field_name }}" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="">
+                          </div>
+                          {% endif %}
+                        {% else %}
+                          <div class="col-span-6 sm:col-span-3">
+                            <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name }} {% if field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                            <select {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} name="{{ field_name }}" id="id_{{ field_name }}" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
+                              <option value="" disabled selected hidden>Choose {{ field_name|set_article }} {{ field_name }}</option>
+                              {% for combo_item in COMBOS|getattribute:field_name %}
+                                <option value="{{ combo_item }}">{{ combo_item }}</option>
+                              {% endfor %}
+                            </select>
+                          </div>
+                        {% endif %}
+                      {% endif %}
+                    {% endfor %}
+                    
+                  </div>
+
+                </div>
+                <!-- Modal footer -->
+                <div class="items-center p-6 border-t border-gray-200 rounded-b dark:border-gray-700">
+                    <button class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800" type="submit">Add item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+  </div>
+
+
+  <!-- csv -->
+  <div id="export-csv" tabindex="-1" aria-hidden="true" class="py-5 fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-7xl max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <!-- Modal header -->
+            <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <div>
+                  <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    Export as CSV
+                  </h3>
+                </div>
+                <div class="text-xl font-semibold text-gray-900 dark:text-white">
+                  {% if request.GET.order_by or request.GET.search or request.GET.snapshot %}
+                    {% with order_by=request.GET.order_by search=request.GET.search snapshot=request.GET.snapshot %}
+                      <a href="{% url 'export_governance_and_risk_csv' %}?{% if order_by %}order_by={{ order_by }}{% endif %}{% if order_by and search %}&{% endif %}{% if search %}search={{ search }}{% endif %}{% if snapshot %}&snapshot={{ snapshot }}{% endif %}">
+                        <img class="w-8" src="{% static 'dist/images/export.png' %}" alt="">
+                      </a>
+                    {% endwith %}
+                  {% else %}
+                    {% comment %} <a href="{% url 'export_governance_and_risk_csv' %}"> {% endcomment %}
+                      <img class="w-8" src="{% static 'dist/images/export.png' %}" alt="">
+                    </a>
+                  {% endif %}
+                </div>
+                <div>
+                  <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="export-csv">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                  </button>
+                </div>
+            </div>
+            <!-- Modal body -->
+            <div class="p-6 space-y-6">
+              <div class="flex flex-col">
+                <div class="overflow-x-auto">
+                  <div class="inline-block min-w-full align-middle">
+                    <div class="overflow-hidden table-wrp shadow">
+                      {% include "includes/items-table.html" with items=softwares %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+    </div>
+  </div>
+
+    <!-- pdf -->
+    <div id="export-pdf" tabindex="-1" aria-hidden="true" class="py-5 fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+      <div class="relative w-full max-w-7xl max-h-full">
+          <!-- Modal content -->
+          <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+              <!-- Modal header -->
+              <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+                  <div>
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                      Export as PDF
+                    </h3>
+                  </div>
+                  {% comment %} <div class="text-xl font-semibold text-gray-900 dark:text-white">
+                    <a href="{% url "export_software_pdf" %}?page={{ softwares.number }}">
+                      <img class="w-8" src="{% static "dist/images/export.png" %}" alt="">
+                    </a>
+                  </div> {% endcomment %}
+                  <div>
+                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="export-pdf">
+                      <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                      </svg>
+                      <span class="sr-only">Close modal</span>
+                    </button>
+                  </div>
+              </div>
+              <!-- Modal body -->
+              <div class="p-6 space-y-6">
+                <div class="flex flex-col">
+                  <div class="overflow-x-auto">
+                    <div class="inline-block min-w-full align-middle">
+                      <div class="overflow-hidden shadow">
+                        {% include "includes/items-table.html" with items=softwares %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+          </div>
+      </div>
+    </div>
+
+
+</main>
+
+{% endblock content %}
+
+
+
+
+
+
+

@@ -1,0 +1,244 @@
+{% extends "layouts/base.html" %}
+{% load static get_attribute file_extension replace_value %}
+
+
+{% block extrastyle %}
+
+<link rel="stylesheet" href="{% static "dist/jquery.multi-select.css" %}">
+<style>
+  .multi-select-button {
+    border-radius: 1rem;
+    border: none;
+  }
+</style>
+
+{% endblock extrastyle %}
+
+
+{% block content %}
+
+<main>
+    <div class="p-4 bg-white block sm:flex items-center justify-between border-b border-gray-200 lg:mt-1.5 dark:bg-gray-800 dark:border-gray-700">
+        <div class="w-full mb-1">
+            <div class="mb-5">
+
+                <ul class="mb-7 flex flex-wrap text-sm font-medium text-center text-gray-500 border-b border-gray-200 dark:border-gray-700 dark:text-gray-400">
+                    <li class="me-2">
+                        <a href="{% url "finding" %}" class="inline-block p-4 rounded-t-lg hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-gray-300">Actions</a>
+                    </li>
+                    <li class="me-2">
+                        <a href="#" aria-current="page" class="inline-block p-4 text-blue-600 bg-gray-100 rounded-t-lg active dark:bg-gray-600 dark:text-white">Edit</a>
+                    </li>
+                </ul>
+                <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">
+                    Edit Actions
+                </h1>
+            
+            </div>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            <form action="" id="uploadForm" class="p-5 shadow" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="grid grid-cols-6 gap-6 mb-5">
+
+                    {% for field in form %}
+                        <div class="col-span-6">
+                            <label for="id_{{ field.name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field.label }} {% if field.name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                            {{ field }}
+                        </div>
+                    {% endfor %}
+
+                    {% for field in action_form %}
+                        <div class="col-span-6 sm:col-span-3">
+                            <label for="id_{{ field.name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field.label }}</label>
+                            {{ field }}
+                        </div>
+                    {% endfor %}
+
+                    {% for field_name in db_field_names %}
+                        {% if field_name == 'attachment' %}
+                        {% elif field_name == 'action_deadline' %}
+                        <div class="col-span-6 sm:col-span-3">
+                            <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name|title }} {% if field_name in read_only_fields %} <span title="Read only field">**</span> {% elif field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                            <input {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} type="datetime-local" value="{{ software.action_deadline|date:'Y-m-d\\TH:i' }}" name="{{ field_name }}" class="{% if field_name in read_only_fields %} cursor-not-allowed {% endif %} shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="">
+                        </div>
+                        {% elif field_name|map_fields == 'companies' %}
+                        {% comment %} <div class="col-span-6 sm:col-span-3">
+                            <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name|title }} {% if field_name in read_only_fields %} <span title="Read only field">**</span> {% elif field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                            <select {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} name="{{ field_name|map_fields }}" id="id_{{ field_name|map_fields }}" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
+                                <option value="" disabled selected hidden>Choose {{ field_name|set_article }} {{ field_name }} </option>
+                                {% for company in companies %}
+                                <option {% if software|getattribute:field_name == company.pk|stringformat:"s" %} selected {% endif %} value="{{ company.pk }}">{{ company.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div> {% endcomment %}
+                        {% elif field_name|map_fields == 'itgc_categories' %}
+                        {% comment %} <div id="itgc_categories_container" class="col-span-6 sm:col-span-3">
+                            <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name|title }} {% if field_name in read_only_fields %} <span title="Read only field">**</span> {% elif field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                            <select {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} name="{{ field_name|map_fields }}" id="id_{{ field_name|map_fields }}" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
+                                <option value="" disabled selected hidden>Choose {{ field_name|set_article }} {{ field_name }}</option>
+                            </select>
+                        </div> {% endcomment %}
+                        {% elif field_name|map_fields == 'itgc_questions' %}
+                        {% comment %} <div id="itgc_questions_container" class="col-span-6 sm:col-span-3">
+                            <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name|title }} {% if field_name in read_only_fields %} <span title="Read only field">**</span> {% elif field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                            <select {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} name="{{ field_name|map_fields }}" id="id_{{ field_name|map_fields }}" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
+                                <option value="" disabled selected hidden>Choose {{ field_name|set_article }} {{ field_name }}</option>
+                            </select>
+                        </div>  {% endcomment %}
+                        {% else %}
+                            {% if field_name in richtext_fields %}
+                            {% else %}
+                                {% if not field_name in pre_column %}
+                                    {% if not field_name in COMBOS %}
+                                        {% if not field_name in date_picker_fields %}
+                                        <div class="col-span-6 sm:col-span-3">
+                                            <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name|title }} {% if field_name in read_only_fields %} <span title="Read only field">**</span> {% elif field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                                            <textarea {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} name="{{ field_name }}" cols="40" rows="1" placeholder="{{ field_name }}" class="{% if field_name in read_only_fields %} cursor-not-allowed {% endif %} shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="id_{{ field_name }}">{{ software|getattribute:field_name|default_if_none:"" }}</textarea>
+                                        </div>
+                                        {% else %}
+                                        <div class="col-span-6 sm:col-span-3">
+                                            <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name|title }} {% if field_name in read_only_fields %} <span title="Read only field">**</span> {% elif field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                                            <input {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} type="datetime-local" value="{{ software|getformattribute:field_name }}" name="{{ field_name }}" class="{% if field_name in read_only_fields %} cursor-not-allowed {% endif %} shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="">
+                                        </div>
+                                        {% endif %}
+                                    {% else %}
+                                    <div class="col-span-6 sm:col-span-3">
+                                        <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name|title }} {% if field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                                        <select {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} name="{{ field_name }}" id="id_{{ field_name }}" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
+                                          <option value="" disabled selected hidden>Choose {{ field_name|set_article }} {{ field_name }}</option>
+                                          {% for combo_item in COMBOS|getattribute:field_name %}
+                                            <option {% if software|getformattribute:field_name == combo_item %}selected{% endif %} value="{{ combo_item }}">{{ combo_item }}</option>
+                                          {% endfor %}
+                                        </select>
+                                    </div>
+                                    {% endif %}
+                                {% endif %}
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <div class="">
+                    <button class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800" type="submit">Save</button>
+                    <button id="copy-url-btn" onclick="copyUrl()" type="button" class="focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 ms-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800">Copy URL</button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</main>
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+
+<script>
+    function updateSubItems() {
+        const parentId = document.getElementById("id_companies").value;
+        const itgcCategoriesContainer = document.getElementById("itgc_categories_container");
+        const itgcCategoriesSelect = document.getElementById("id_itgc_categories");
+        const itgcQuestionsContainer = document.getElementById("itgc_questions_container");
+    
+        const itgcCategories = "{{ software.itgc_categories }}";
+    
+        if (parentId) {
+            itgcCategoriesContainer.classList.remove("hidden");
+            itgcQuestionsContainer.classList.remove("hidden");
+    
+            itgcCategoriesSelect.innerHTML = '<option value="">Select a category</option>';
+            fetch(`/tables/get-sub-items/${parentId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    data.sub_items.forEach(item => {
+                        const option = document.createElement("option");
+                        option.value = item.id;
+                        option.textContent = item.title;
+
+                        if (itgcCategories === item.id.toString()) {
+                            option.selected = true;
+                        }
+    
+                        itgcCategoriesSelect.appendChild(option);
+                    });
+    
+                    updateQuestions();
+                })
+                .catch(error => console.error("Error fetching ITGC categories:", error));
+        } else {
+            itgcCategoriesContainer.classList.add("hidden");
+            itgcQuestionsContainer.classList.add("hidden");
+        }
+    }
+    
+    function updateQuestions() {
+        const categoryId = document.getElementById("id_itgc_categories").value;
+        const itgcQuestionsContainer = document.getElementById("itgc_questions_container");
+        const itgcQuestionsSelect = document.getElementById("id_itgc_questions");
+        const itgcQuestions = "{{ software.itgc_questions }}";
+    
+        if (categoryId) {
+            itgcQuestionsContainer.classList.remove("hidden");
+    
+            itgcQuestionsSelect.innerHTML = '<option value="">Select question</option>';
+            fetch(`/tables/get-sub-items/${categoryId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    data.sub_items.forEach(item => {
+                        const option = document.createElement("option");
+                        option.value = item.id;
+                        option.textContent = item.title;
+    
+                        if (itgcQuestions === item.id.toString()) {
+                            option.selected = true;
+                        }
+    
+                        itgcQuestionsSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error("Error fetching ITGC questions:", error));
+        } else {
+            itgcQuestionsContainer.classList.add("hidden");
+        }
+    }
+    
+    document.getElementById("id_companies").addEventListener("change", updateSubItems);
+    document.getElementById("id_itgc_categories").addEventListener("change", updateQuestions);
+    
+    document.addEventListener("DOMContentLoaded", () => {
+        updateSubItems();
+    });
+</script>
+
+<script>
+    function copyUrl() {
+        const url = "{{ finding_url }}";
+        const textArea = document.createElement('textarea');
+        textArea.value = url;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('URL copied to clipboard');
+    }
+</script>
+
+<script src="{% static "dist/js/jquery-2.2.4.min.js" %}"></script>
+<script src="{% static "dist/js/jquery.multi-select.min.js" %}"></script>
+
+<script>
+  $('#id_action_to').multiSelect({
+    'noneText': 'Select action to'
+  });
+</script>
+
+{% endblock extra_js %}

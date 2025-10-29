@@ -1,0 +1,2417 @@
+{% extends "layouts/base.html" %}
+{% load static get_attribute file_extension replace_value custom_filters %}
+
+{% block extrastyle %}
+
+<style>
+  .table-wrp  {
+    max-height: 75vh;
+    overflow-y: auto;
+    display:block;
+  }
+  thead{
+    position:sticky;
+    top:0
+  }
+</style>
+
+{% endblock extrastyle %}
+
+{% block content %}
+
+
+<main>
+  <div
+    class="p-4 bg-white block sm:flex items-center justify-between border-b border-gray-200 lg:mt-1.5 dark:bg-gray-800 dark:border-gray-700">
+    <div class="w-full mb-1">
+      <div class="mb-4">
+
+        <ul class="mb-7 flex flex-wrap text-sm font-medium text-center text-gray-500 border-b border-gray-200 dark:border-gray-700 dark:text-gray-400">
+          <li class="me-2">
+              <a href="#" aria-current="page" class="inline-block p-4 text-blue-600 bg-gray-100 rounded-t-lg active dark:bg-gray-600 dark:text-white">Control AD User</a>
+          </li>
+          {% for tab in tabs %}
+            <li class="me-2">
+              <div class="flex items-center gap-5 {% if tab.id|stringformat:"s" in request.path %} inline-block p-4 rounded-t-lg text-blue-600 bg-gray-100 active dark:bg-gray-600 dark:text-white {% else %} inline-block p-4 rounded-t-lg hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-gray-300 {% endif %}">
+                <a href="{% url "tab_details" tab.id %}{% if tab.order_by %}?order_by={{tab.order_by}}{% endif %}" aria-current="page" class="">{{ tab.name }}</a>
+                <a 
+                  data-modal-target="remove-tab-{{tab.id}}" 
+                  data-modal-toggle="remove-tab-{{tab.id}}"
+                  class="hover:bg-gray-200 rounded-sm p-px"
+                >
+                  <svg class="w-4 h-4 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 17.94 6M18 18 6.06 6"/>
+                  </svg>                  
+                </a>
+              </div>
+            </li>
+
+            <div class="action-modal fixed left-0 right-0 z-50 items-center justify-center hidden overflow-x-hidden overflow-y-auto top-4 md:inset-0 h-modal sm:h-full" id="remove-tab-{{tab.id}}">
+              <div class="relative w-full h-full max-w-md px-4 md:h-auto">
+                <!-- Modal content -->
+                <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+                  <!-- Modal header -->
+                  <div class="flex justify-end p-2">
+                    <button type="button" class="rotate-toggle-button text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-toggle="remove-tab-{{tab.id}}">
+                      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>  
+                    </button>
+                  </div>
+                  <!-- Modal body -->
+                  <div class="p-6 pt-0 text-center">
+                    <svg class="w-16 h-16 mx-auto text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <h3 class="mt-5 mb-6 text-lg text-gray-500 dark:text-gray-400">Are you sure you want to delete this tab?</h3>
+                    <a href="{% url "remove_tab" tab.id %}" class="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-base inline-flex items-center px-3 py-2.5 text-center mr-2 dark:focus:ring-red-800">
+                      Yes, I'm sure
+                    </a>
+                    <a href="#" class="text-gray-900 bg-white hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 border border-gray-200 font-medium inline-flex items-center rounded-lg text-base px-3 py-2.5 text-center dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700" data-modal-toggle="remove-tab-{{tab.id}}">
+                      No, cancel
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </ul>
+
+        <div class="flex items-center gap-2">
+          <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">
+            Control AD User
+            <span class="inline-flex items-center justify-center w-1/2 px-2 py-2.5 text-sm font-medium text-center text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700">
+              {{ softwares.paginator.count }} out of {{ total_items }}
+            </span>   
+            
+            <select id="snapshots" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+              <option disabled selected>DT Snapshots</option>
+              <option {% if request.GET.snapshot == 'all' %} selected {% endif %} value="all">All</option>
+              {% for snapshot in snapshots %}
+                {% if selected_snapshot %}
+                  <option  {% if selected_snapshot.id == snapshot.id %} selected {% endif %} value="{{ snapshot.id }}">{{ snapshot.id }} - {{ snapshot.created_at }} </option>
+                {% else %}
+                  <option  {% if latest_snapshot.id == snapshot.id and not request.GET.snapshot == 'all' %} selected {% endif %} value="{{ snapshot.id }}">{{ snapshot.id }} - {{ snapshot.created_at }} </option>
+                {% endif %}
+              {% endfor %}
+            </select> 
+          </h1>
+          {% if table_name and join_model_instance %}
+            <button 
+              data-modal-target="refresh-modal" 
+              data-modal-toggle="refresh-modal"
+              class="py-2.5 px-5 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
+            >
+              Refresh
+            </button>
+          {% else %}
+            <button
+              type="button"
+              data-modal-target="csv-upload-modal" 
+              data-modal-toggle="csv-upload-modal"
+              class="py-2.5 px-5 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
+            >
+              Upload
+            </button>
+          {% endif %}
+          
+          <a
+            href="{% url "ipe_details" %}?path={{request.path}}"
+            target="_blank"
+            class="py-2.5 px-5 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
+          >
+            IPE
+          </a>
+
+          <form action="{% url "fetch_stored_procedure_data" "SP ControlADUser" "table_name" %}" method="post">
+            {% csrf_token %}
+  
+            <button type="submit" class="py-2.5 px-5 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">Stored Procedure</button>
+          </form>
+
+          <button
+            type="button"
+            data-modal-target="query-load-modal" 
+            data-modal-toggle="query-load-modal"
+            class="py-2.5 px-5 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
+          >
+            Query Load
+          </button>
+          <button
+            type="button"
+            data-modal-target="sap-api-load-modal" 
+            data-modal-toggle="sap-api-load-modal"
+            class="py-2.5 px-5 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
+          >
+            SAP API Load
+          </button>
+          <a target="_blank" 
+            href="{% url "graic_chat_index" %}"
+            data-tooltip-target="graic-chat" data-tooltip-placement="bottom"
+          >
+            <img src="{% static "dist/img/graic.jpg" %}" style="width: 44px; height: 40px;" class="rounded-lg" alt="">
+          </a>
+          <div id="graic-chat" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+            Chat with grAIc
+            <div class="tooltip-arrow" data-popper-arrow></div>
+          </div>
+
+        </div>
+
+      </div>
+      <div class="items-center justify-between block sm:flex dark:divide-gray-700">
+        <div class="flex items-center mb-4 sm:mb-0">
+          <form class="sm:pr-3 flex itmes-center gap-2" method="GET">
+            <div>
+              <label for="control-ad-user-search" class="sr-only">Search</label>
+              <div class="relative w-48 sm:w-64 xl:w-96">
+                <input type="text" name="search" value="{{ request.GET.search }}" id="control-ad-user-search"
+                  class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+                  placeholder="Global search">
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="submit" name="mode" value="normal" data-tooltip-target="general-search" data-tooltip-placement="bottom"
+                class="inline-flex items-center justify-center w-1/2 px-3 py-2.5 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+                <svg class="w-5 h-5 text-white dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                </svg>
+              </button>
+              <div id="general-search" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+                General search
+                <div class="tooltip-arrow" data-popper-arrow></div>
+              </div>
+              <button type="submit" name="mode" value="graic" data-tooltip-target="graic-search" data-tooltip-placement="bottom"
+                class="inline-flex items-center justify-center w-1/2 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+                <img src="{% static "dist/img/graic.jpg" %}" style="width: 44px; height: 40px;" class="rounded-lg" alt="">  
+              </button>
+              <div id="graic-search" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+                Search by grAIc
+                <div class="tooltip-arrow" data-popper-arrow></div>
+              </div>
+            </div>
+          </form>
+          <div>
+            <svg 
+              data-modal-target="default-modal" data-modal-toggle="default-modal"
+              class="cursor-pointer w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+              <path fill-rule="evenodd" d="M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm9.408-5.5a1 1 0 1 0 0 2h.01a1 1 0 1 0 0-2h-.01ZM10 10a1 1 0 1 0 0 2h1v3h-1a1 1 0 1 0 0 2h4a1 1 0 1 0 0-2h-1v-4a1 1 0 0 0-1-1h-2Z" clip-rule="evenodd"/>
+            </svg>
+
+            <div id="default-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+              <div class="relative p-4 w-full max-w-md max-h-full">
+                <!-- Modal content -->
+                <div class="relative bg-white rounded-lg shadow-sm dark:bg-gray-700">
+                  <!-- Modal header -->
+                  <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600 border-gray-200">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                      Default Values
+                    </h3>
+                    <button type="button" class="end-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="default-modal">
+                      <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                      </svg>
+                      <span class="sr-only">Close modal</span>
+                    </button>
+                  </div>
+                  <!-- Modal body -->
+                  <div class="p-4 md:p-5">
+                    <form class="space-y-4" method="post" action="{% url "set_default_value" %}">
+                      {% csrf_token %}
+                      <div>
+                        <label for="similarity_threshold" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Similarity Threshold</label>
+                        <input type="number" name="similarity_threshold" value="{{ default_value.similarity_threshold }}" id="similarity_threshold" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="Similarity Threshold" />
+                      </div>
+                      <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                          <input id="extract_keywords" name="extract_keywords" {% if default_value.extract_keywords %}checked{% endif %} type="checkbox" class="w-4 h-4 border border-gray-300 rounded-sm bg-gray-50 focus:ring-3 focus:ring-blue-300 dark:bg-gray-600 dark:border-gray-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:focus:ring-offset-gray-800"  />
+                        </div>
+                        <label for="extract_keywords" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Extract keywords</label>
+                      </div>
+                      <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                          <input id="dynamic_similarity" name="dynamic_similarity" {% if default_value.dynamic_similarity %}checked{% endif %} type="checkbox" class="w-4 h-4 border border-gray-300 rounded-sm bg-gray-50 focus:ring-3 focus:ring-blue-300 dark:bg-gray-600 dark:border-gray-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:focus:ring-offset-gray-800"  />
+                        </div>
+                        <label for="dynamic_similarity" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Dynamic similarity</label>
+                      </div>
+                      <div id="dynamic_rows_section">
+                        <label for="dynamic_rows" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Dynamic Threshold</label>
+                        <input type="number" name="dynamic_rows" value="{{ default_value.dynamic_rows }}" id="dynamic_rows" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="Dynamic Rows" />
+                      </div>
+                      <div>
+                        <label for="filter_method" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Filter Method</label>
+                        <select id="filter_method" name="filter_method" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                          <option {% if "vector" == default_value.filter_method %}selected{% endif %} value="vector">Vector</option>
+                          <option {% if "graic" == default_value.filter_method %}selected{% endif %} value="graic">grAIc Filter</option>
+                        </select>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Save</button>
+                        <a href="{% url "clear_default" %}" class="focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900">Clear</a>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center ml-auto space-x-2 sm:space-x-3">
+          <form action="" method="post">
+            <button id="dropdownCheckboxButton" data-dropdown-toggle="dropdownDefaultCheckbox" class="inline-flex items-center justify-center w-1/2 px-2 py-2.5 text-sm font-medium text-center text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700" type="button">
+              Hide / Show Column
+              <svg class="w-2.5 h-2.5 ml-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+              </svg>
+            </button>
+            <!-- Dropdown menu -->
+            <div id="dropdownDefaultCheckbox" class="w-max z-10 hidden w-64 bg-white divide-y divide-gray-100 rounded-lg shadow dark:bg-gray-700 dark:divide-gray-600">
+              <!-- Search Bar -->
+              <div class="sticky top-0 bg-white dark:bg-gray-700 p-3">
+                <input type="text" id="searchInput" placeholder="Search columns..." class="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-600 dark:text-gray-200 dark:border-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-300">
+              </div>
+              <div class="px-3 py-2">
+                <small class="block w-64 text-xs text-gray-500 dark:text-gray-400">Columns are reorderable. Drag and drop them to change the order.</small>
+              </div>
+              <!-- Scrollable List -->
+              <ul id="dropdownList" class="p-3 space-y-3 text-sm text-gray-700 dark:text-gray-200 max-h-60 overflow-y-auto">
+                <li id="selectAllParent">
+                  <div class="flex items-center">
+                    <input id="selectAll" type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                    <label for="selectAll" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Select All</label>
+                  </div>
+                </li>
+                {% for field_name in field_names %}
+                  {% if not field_name.key in pre_column %}
+                  <li data-col="{{ field_name.key }}" draggable="true">
+                    <div class="flex items-center">
+                      <input id="checkbox-item-{{ field_name.id }}" data-target="{{ field_name.key }}" {% if field_name.value %} checked {% endif %} type="checkbox" value="{{ field_name.key }}" name="key" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                      <label for="checkbox-item-{{ field_name.id }}" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">{{ field_name.key|rename_field:join_model_instance }}</label>
+                    </div>
+                  </li>
+                  {% else %}
+                  <li data-col="{{ field_name.key }}" draggable="true" class="hidden pre-columns-parent">
+                    <div class="flex items-center">
+                      <input id="checkbox-item-{{ field_name.id }}" data-target="{{ field_name.key }}" disabled checked type="checkbox" value="{{ field_name.key }}" name="key" class="pre-columns w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                      <label for="checkbox-item-{{ field_name.id }}" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">{{ field_name.key }}</label>
+                    </div>
+                  </li>
+                  {% endif %}
+                {% endfor %}
+              </ul>
+              <!-- Save and Cancel Buttons -->
+              <div class="sticky bottom-0 bg-white dark:bg-gray-700 p-3 flex justify-end space-x-2">
+                <button type="button" id="save-order" class="save-button px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 dark:bg-blue-500 dark:hover:bg-blue-600">Save</button>
+                <button type="button" class="cancel-button px-3 py-2 text-sm font-medium text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200 focus:ring-4 focus:ring-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">Cancel</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div class="flex items-center ml-auto space-x-2 sm:space-x-3">
+          {% comment %} <form action="{% url "add_to_favorite" model_name='ControlADUser' model_choice='CONTROL_AD_USER' %}" method="post">
+            {% csrf_token %}
+
+            <input type="hidden" name="search_fields" value="{{ request.GET.search }}" >
+            <input type="hidden" name="order_by" value="{{ request.GET.order_by }}" >
+            <input type="hidden" name="fav_name" value="{{ fav_name }}">
+            <input type="hidden" name="snapshot" value="{{ request.GET.snapshot }}">
+            <input type="hidden" name="pre_columns" value="{{ pre_column }}">
+            <input type="hidden" name="pre_filters" value="{{ pre_filter }}">
+
+            <button type="submit" data-tooltip-target="favorite" data-tooltip-placement="bottom" class="inline-flex items-center justify-center w-1/2 px-2 py-2.5 text-sm font-medium text-center text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700">
+              <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 21 19">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4C5.5-1.5-1.5 5.5 4 11l7 7 7-7c5.458-5.458-1.542-12.458-7-7Z"/>
+              </svg>
+            </button>
+          </form>
+          <div id="favorite" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm opacity-0 tooltip dark:bg-gray-700">
+            Add to Favorite
+            <div class="tooltip-arrow" data-popper-arrow></div>
+          </div> {% endcomment %}
+
+          <button type="button" data-modal-target="new-tab" data-modal-toggle="new-tab" data-tooltip-target="favorite" data-tooltip-placement="bottom" class="inline-flex items-center justify-center w-1/2 px-2 py-2.5 text-sm font-medium text-center text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700">
+            <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7 7V5"/>
+            </svg>              
+          </button>
+          <div id="favorite" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm opacity-0 tooltip dark:bg-gray-700">
+            Open a new Tab
+            <div class="tooltip-arrow" data-popper-arrow></div>
+          </div>
+
+          <div>
+            <button id="dropdownActionButton" data-dropdown-toggle="action" class="inline-flex items-center justify-center w-1/2 px-2 py-2.5 text-sm font-medium text-center text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700">
+              <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 13V8m0 8h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+              </svg>    
+            </button>
+            <div id="action" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44 dark:bg-gray-700">
+              <ul class="py-2 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="dropdownActionButton">
+                <li>
+                  <form action="{% url "add_to_finding" model_name='ControlADUser' model_choice='CONTROL_AD_USER' %}" class="" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="search_fields" value="{{ request.GET.search }}" >
+            <input type="hidden" name="order_by" value="{{ request.GET.order_by }}" >
+            <input type="hidden" name="snapshot" value="{{ request.GET.snapshot }}" >
+            <input type="hidden" name="fav_name" value="{{ fav_name }}">
+            <input type="hidden" name="pre_columns" value="{{ pre_column }}">
+            <input type="hidden" name="pre_filters" value="{{ pre_filter }}">
+            <button type="submit" class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
+                      Add to Actions           
+            </button>
+          </form>
+                </li>
+                <li>
+                  <form action="{% url "add_to_finding" model_name='ControlADUser' model_choice='CONTROL_AD_USER' %}" class="" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="search_fields" value="{{ request.GET.search }}" >
+                    <input type="hidden" name="order_by" value="{{ request.GET.order_by }}" >
+                    <input type="hidden" name="snapshot" value="{{ request.GET.snapshot }}" >
+                    <input type="hidden" name="fav_name" value="{{ fav_name }}">
+                    <input type="hidden" name="pre_columns" value="{{ pre_column }}">
+                    <input type="hidden" name="pre_filters" value="{{ pre_filter }}">
+                    <input type="hidden" name="selected_rows" value="{{ selected_rows }}">
+                    <button type="submit" class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
+                      Add selected to Actions           
+                    </button>
+                  </form>
+                </li>
+              </ul>
+          </div>
+          </div>
+
+          <form method="post" class="inline-flex items-center justify-center w-1/2 px-2 py-2 text-sm font-medium text-center text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700">
+            {% csrf_token %}
+
+            <select onchange="getComboA(this)" id="items" class="bg-transparent dark:text-white py-0 border-transparent focus:border-transparent focus:ring-0">
+              <option class="dark:bg-gray-800" {% if items == 25 %} selected {% endif %} value="25">25 Items</option>
+              <option class="dark:bg-gray-800" {% if items == 50 %} selected {% endif %} value="50">50 Items</option>
+              <option class="dark:bg-gray-800" {% if items == 100 %} selected {% endif %} value="100">100 Items</option>
+            </select>
+            
+          </form>
+          <!--{% if request.user.is_authenticated %}
+          <button type="button" data-modal-toggle="add-software-modal" class="inline-flex items-center justify-center w-1/2 px-3 py-2 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+              <svg class="w-5 h-5 mr-2 -ml-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path></svg>
+              Add
+          </button>
+          {% endif %}-->
+          <div class="flex">
+            {% comment %} <a data-modal-target="export-csv" data-modal-toggle="export-csv">
+              <img class="w-10" src="{% static "dist/images/csv.png" %}" alt="">
+            </a>
+            <a data-modal-target="export-selected-csv" data-modal-toggle="export-selected-csv">
+              <img class="w-10" src="{% static "dist/images/csv.png" %}" alt="">
+            </a> {% endcomment %}
+
+            <div>
+              <button id="dropdownCSVExportButton" data-dropdown-toggle="export" >
+                <img class="w-10" src="{% static "dist/images/csv.png" %}" alt="">
+              </button>
+              <div id="export" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44 dark:bg-gray-700">
+                <ul class="py-2 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="dropdownCSVExportButton">
+                  <li>
+                    <a href="#" data-modal-target="export-csv" data-modal-toggle="export-csv" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">Export all rows</a>
+                  </li>
+                  <li>
+                    <a href="#" data-modal-target="export-selected-csv" data-modal-toggle="export-selected-csv" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">Export selected rows</a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div>
+              <button id="dropdownDocxExportButton" data-dropdown-toggle="docx-export" >
+                <img class="w-10" src="{% static "dist/images/xlsx.png" %}" alt="">
+              </button>
+              <div id="docx-export" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44 dark:bg-gray-700">
+                <ul class="py-2 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="dropdownDocxExportButton">
+                  <li>
+                    <a href="#" data-modal-target="export-docx" data-modal-toggle="export-docx" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">Export all rows</a>
+                  </li>
+                  <li>
+                    <a href="#" data-modal-target="export-selected-docx" data-modal-toggle="export-selected-docx" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">Export selected rows</a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            
+            {% comment %} <a data-modal-target="export-pdf" data-modal-toggle="export-pdf">
+              <img class="w-10" src="{% static "dist/images/pdf.png" %}" alt="">
+            </a> {% endcomment %}
+          </div>
+        </div> 
+      
+      </div>
+
+      <div class="items-end mt-4 justify-between block flex">
+        <div class="flex items-center sm:mb-0">
+
+          <form method="post" action="{% url "create_control_ad_user_filter" %}">
+            {% csrf_token %}
+
+            <div class="flex items-center gap-5 mb-3">
+              <div>
+                <h1 style="white-space: nowrap;" class="block dark:text-white">Filters</h1>
+              </div>
+              <div>
+                <button onclick="addFilter()" type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Add</button>
+              </div>
+            </div>
+            <div id="filters-container">
+              <!-- Dynamic Filters Appear Here -->
+            </div>
+        
+            <button class="bg-green-500 text-white px-4 py-2 rounded-md mt-4" type="submit">Submit</button>
+          </form>
+
+        </div>
+
+        <div>
+          {% if table_name and join_model_instance %}
+          <button id="unmatchedButton" class="bg-green-500 text-white px-4 py-2 rounded-md mt-4" type="button">Unmatch</button>
+          {% endif %}
+          <button id="assignButton" class="bg-green-500 text-white px-4 py-2 rounded-md mt-4" type="button">Save Selected</button>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+  <div class="flex flex-col">
+    <div style="transform:rotateX(180deg);" class="overflow-x-auto">
+      <div style="transform:rotateX(180deg);" class="inline-block min-w-full align-middle">
+        <div class="overflow-hidden table-wrp shadow">
+          <table class="min-w-full divide-y divide-gray-200 table-fixed dark:divide-gray-600">
+            <thead class="bg-gray-100 dark:bg-gray-700">
+              <tr>
+                <th scope="col" class="p-2">
+                  <div class="flex items-center">
+                    <input id="checkbox-all" aria-describedby="checkbox-1" type="checkbox"
+                      class="w-4 h-4 border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:focus:ring-primary-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                    <label for="checkbox-all" class="sr-only">checkbox</label>
+                  </div>
+                </th>
+
+                <!--{% if request.user.is_authenticated %}
+                <th scope="col" class="p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                  Action
+                </th>
+                {% endif %}-->
+                
+                {% for field in db_field_names %}
+                  <th title="{{ field }}" id="th_{{ field }}" scope="col" class="p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                    <div class="group flex items-center gap-2 whitespace-nowrap h-6 w-48">
+                      <span class="block whitespace-nowrap overflow-hidden">{{ field|rename_field:join_model_instance }}</span>
+                      <div class="hidden group-hover:inline-block">
+                        <a class="order-link" data-order="{{ field }}" href="#">
+                          <img class="w-3" src="{% static "dist/images/up-arrow.png" %}" alt="">
+                        </a>
+                        <a class="order-link" data-order="-{{ field }}" href="#">
+                          <img class="w-3" src="{% static "dist/images/arrow-down.png" %}" alt="">
+                        </a>
+                      </div>
+                    </div>
+                  </th>
+                {% endfor %}
+
+                <!--{% if request.user.is_authenticated %}
+                <th scope="col" class="p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                  Action
+                </th>
+                {% endif %}-->
+
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+
+              {% for software in softwares %}
+              <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+
+                <td class="w-4 p-2">
+                  <div class="flex items-center">
+                    <input id="checkbox-{{software.ID}}" aria-describedby="checkbox-1" type="checkbox"
+                      class="checkbox-row w-4 h-4 border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:focus:ring-primary-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600"
+                      data-id="{{ software.ID }}"
+                      {% if software.ID in selected_rows %}checked{% endif %}
+                    >
+                    <label for="checkbox-{{software.ID}}" class="sr-only">checkbox</label>
+                  </div>
+                </td>
+
+                <!-- {% for field_name in db_field_names %}
+                <td class="td_{{ field_name }} p-2 text-sm font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                  {{ software|getattribute:field_name|default_if_none:"" }}
+                </td>
+                {% endfor %} -->
+
+                {% for field_name in db_field_names %}
+                  {% if field_name in encrypted_fields and request.user.is_audituser %}
+                    <td class="td_{{ field_name }} p-2 text-sm font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                      {{ software|getattribute:field_name|decrypt_value|default_if_none:"" }}
+                    </td>
+                  {% else %}
+                    <td class="td_{{ field_name }} p-2 text-sm font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                      {% if field_name in unique_filter %}
+                        <a 
+                          class="underline text-primary-600" 
+                          href="{% url "unique_details" table_name field_name software|get_raw_value:field_name|default_if_none:"" "" "CONTROL_AD_USER" %}"
+                        >
+                          {% if software|getattribute:field_name %}
+                              {{ software|getattribute:field_name }}
+                            {% else %}
+                              { Null }
+                            {% endif %}
+                        </a>
+                      {% else %}
+                        {{ software|getattribute:field_name|default_if_none:"" }}
+                      {% endif %}
+                    </td>
+                  {% endif %}
+                {% endfor %}
+
+              </tr>
+
+              <!-- Delete Product Drawer -->
+              <div class="action-modal fixed left-0 right-0 z-50 items-center justify-center hidden overflow-x-hidden overflow-y-auto top-4 md:inset-0 h-modal sm:h-full" id="drawer-delete-product-default{{software.ID}}">
+                <div class="relative w-full h-full max-w-md px-4 md:h-auto">
+                    <!-- Modal content -->
+                    <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+                        <!-- Modal header -->
+                        <div class="flex justify-end p-2">
+                            <button type="button" class="rotate-toggle-button text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-toggle="drawer-delete-product-default{{software.ID}}">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>  
+                            </button>
+                        </div>
+                        <!-- Modal body -->
+                        <div class="p-6 pt-0 text-center">
+                            <svg class="w-16 h-16 mx-auto text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <h3 class="mt-5 mb-6 text-lg text-gray-500 dark:text-gray-400">Are you sure you want to delete this item?</h3>
+                            <a href="{% url "delete_control_ad_user" software.ID %}" class="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-base inline-flex items-center px-3 py-2.5 text-center mr-2 dark:focus:ring-red-800">
+                                Yes, I'm sure
+                            </a>
+                            <a href="#" class="text-gray-900 bg-white hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 border border-gray-200 font-medium inline-flex items-center rounded-lg text-base px-3 py-2.5 text-center dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700" data-modal-toggle="drawer-delete-product-default{{software.ID}}">
+                                No, cancel
+                            </a>
+                        </div>
+                    </div>
+                </div>
+              </div>
+
+              <!-- Edit Product Drawer -->
+              <div class="action-modal pb-5 fixed left-0 right-0 z-50 items-center justify-center hidden overflow-x-hidden overflow-y-auto top-4 md:inset-0 h-modal sm:h-full" id="drawer-update-product-default{{software.ID}}">
+                <div class="relative w-full h-full max-w-4xl px-4 md:h-auto">
+                    <!-- Modal content -->
+                    <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+                      <!-- Modal header -->
+                      <div class="flex items-start justify-between p-5 border-b rounded-t dark:border-gray-700">
+                          <h3 class="text-xl font-semibold dark:text-white">
+                              Edit item
+                          </h3>
+                          <button type="button" class="rotate-toggle-button text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-toggle="drawer-update-product-default{{software.ID}}">
+                              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>  
+                          </button>
+                      </div>
+                      <!-- Modal body -->
+                      <div style="height: 70vh;" class="p-6 space-y-6 overflow-y-auto">
+                          <form method="post" action="{% url "update_control_ad_user" software.ID %}">
+                            {% csrf_token %}
+                            
+                            <div class="grid grid-cols-6 gap-6">
+                              {% for field_name in db_field_names %}
+                                {% if not field_name in pre_column %}
+                                  {% if not field_name in COMBOS %}
+                                    {% if not field_name in date_picker_fields %}
+                                    <div class="col-span-6 sm:col-span-3">
+                                        <!--<label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name }} {% if field_name in read_only_fields %} <span title="Read only field">**</span> {% endif %} </label>
+                                        <textarea {% if field_name in read_only_fields %} readonly disabled {% endif %} name="{{ field_name }}" cols="40" rows="1" placeholder="{{ field_name }}" class="{% if field_name in read_only_fields %} cursor-not-allowed {% endif %} shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="id_{{ field_name }}">{{ software|getattribute:field_name }}</textarea>-->
+                                        <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name }} {% if field_name in read_only_fields %} <span title="Read only field">**</span> {% elif field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                                        <textarea {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} name="{{ field_name }}" cols="40" rows="1" placeholder="{{ field_name }}" class="{% if field_name in read_only_fields %} cursor-not-allowed {% endif %} shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="id_{{ field_name }}">{{ software|getattribute:field_name|default_if_none:"" }}</textarea>
+                                    </div>
+                                    {% else %}
+                                    <div class="col-span-6 sm:col-span-3">
+                                      <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name }} {% if field_name in read_only_fields %} <span title="Read only field">**</span> {% elif field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                                      <input {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} type="datetime-local" value="{{ software|getformattribute:field_name }}" name="{{ field_name }}" class="{% if field_name in read_only_fields %} cursor-not-allowed {% endif %} shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="">
+                                    </div>
+                                    {% endif %}
+                                  {% else %}
+                                    <div class="col-span-6 sm:col-span-3">
+                                      <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name }} {% if field_name in read_only_fields %} <span title="Read only field">**</span> {% elif field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                                      <select {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} name="{{ field_name }}" id="id_{{ field_name }}" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
+                                        <!--<option selected>Choose a {{ field_name }}</option>-->
+                                        <option value="" disabled selected hidden>Choose {{ field_name|set_article }} {{ field_name }}</option>
+                                        {% for combo_item in COMBOS|getattribute:field_name %}
+                                        <option {% if software|getattribute:field_name == combo_item %} selected {% endif %} value="{{ combo_item }}">{{ combo_item }}</option>
+                                        {% endfor %}
+                                      </select>
+                                    </div>
+                                  {% endif %}
+                                {% endif %}
+                              {% endfor %}
+                              
+                            </div>
+                            
+                          </div>
+                          <!-- Modal footer -->
+                          <div class="items-center p-6 border-t border-gray-200 rounded-b dark:border-gray-700">
+                              <button class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800" type="submit">Update item</button>
+                          </div>
+                      </form>
+                  </div>
+                </div>
+              </div>
+
+
+              {% endfor %}
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+  {% if softwares.has_other_pages %}
+  <nav aria-label="Page navigation example" class="mt-5 ml-4">
+    <ul class="inline-flex -space-x-px text-base h-10">
+      {% if softwares.has_previous %}
+        <li>
+          <a href="#" data-page="1" class="page-link flex items-center justify-center px-4 h-10 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">First</a>
+        </li>
+        <li>
+          <a href="#" data-page="{{ softwares.previous_page_number }}" class="page-link flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Prev</a>
+        </li>
+      {% endif %}
+
+      {% for n in softwares.paginator.page_range %}
+        {% if softwares.number == n %}
+          <li>
+            <span class="flex items-center justify-center px-4 h-10 text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white">{{ n }}<span class="sr-only"></span></span>
+          </li>
+        {% elif n > softwares.number|add:'-3' and n < softwares.number|add:'3' %}
+          <li>
+            <a class="page-link flex items-center justify-center px-4 h-10 leading-tight {% if softwares.number == i %}text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white{% else %}text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white{% endif %}" data-page="{{ n }}" href="#">
+              {{ n }}
+            </a>
+          </li>
+        {% endif %}
+      {% endfor %}
+      
+      {% if softwares.has_next %}
+        <li>
+          <a href="#" data-page="{{ softwares.next_page_number }}" class="page-link flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Next</a>
+        </li>
+        <li>
+          <a href="#" data-page="{{ softwares.paginator.num_pages }}" class="page-link flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Last</a>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endif %}
+
+
+
+  <!-- Add Product Drawer -->
+  <div class="pb-5 fixed left-0 right-0 z-50 items-center justify-center hidden overflow-x-hidden overflow-y-auto top-4 md:inset-0 h-modal sm:h-full" id="add-software-modal">
+    <div class="relative w-full h-full max-w-4xl px-4 md:h-auto">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            <!-- Modal header -->
+            <div class="flex items-start justify-between p-5 border-b rounded-t dark:border-gray-700">
+                <h3 class="text-xl font-semibold dark:text-white">
+                    Add new item
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-toggle="add-software-modal">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>  
+                </button>
+            </div>
+            <!-- Modal body -->
+            <div style="height: 70vh;" class="p-6 space-y-6 overflow-y-auto">
+                <form method="post" action="{% url "create_control_ad_user" %}">
+                  {% csrf_token %}
+
+                  <div class="grid grid-cols-6 gap-6">
+                    {% for field_name in db_field_names %}
+                      {% if not field_name in pre_column %}
+                        {% if not field_name in COMBOS %}
+                          {% if not field_name in date_picker_fields %}
+                          <div class="col-span-6 sm:col-span-3">
+                              <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name }} {% if field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                              <textarea {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} name="{{ field_name }}" cols="40" rows="1" placeholder="{{ field_name }}" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="id_{{ field_name }}"></textarea>
+                          </div>
+                          {% else %}
+                          <div class="col-span-6 sm:col-span-3">
+                            <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name }} {% if field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %}</label>
+                            <input {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} type="datetime-local" name="{{ field_name }}" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="">
+                          </div>
+                          {% endif %}
+                        {% else %}
+                          <div class="col-span-6 sm:col-span-3">
+                            <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name }} {% if field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                            <select {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} name="{{ field_name }}" id="id_{{ field_name }}" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
+                              <option value="" disabled selected hidden>Choose {{ field_name|set_article }} {{ field_name }}</option>
+                              {% for combo_item in COMBOS|getattribute:field_name %}
+                                <option value="{{ combo_item }}">{{ combo_item }}</option>
+                              {% endfor %}
+                            </select>
+                          </div>
+                        {% endif %}
+                      {% endif %}
+                    {% endfor %}
+                    
+                  </div>
+
+                </div>
+                <!-- Modal footer -->
+                <div class="items-center p-6 border-t border-gray-200 rounded-b dark:border-gray-700">
+                    <button class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800" type="submit">Add item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+  </div>
+
+
+  <!-- csv -->
+  <div id="export-csv" tabindex="-1" aria-hidden="true" class="py-5 fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-7xl max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <!-- Modal header -->
+            <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <div>
+                  <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    Export as CSV
+                  </h3>
+                </div>
+                <div class="text-xl font-semibold text-gray-900 dark:text-white">
+                  {% if request.GET.order_by or request.GET.search or request.GET.snapshot %}
+                    {% with order_by=request.GET.order_by search=request.GET.search snapshot=request.GET.snapshot %}
+                      <a href="{% url 'export_control_ad_user_csv' %}?{% if order_by %}order_by={{ order_by }}{% endif %}{% if order_by and search %}&{% endif %}{% if search %}search={{ search }}{% endif %}{% if snapshot %}&snapshot={{ snapshot }}{% endif %}">
+                        <img class="w-8" src="{% static 'dist/images/export.png' %}" alt="">
+                      </a>
+                    {% endwith %}
+                  {% else %}
+                    <a href="{% url 'export_control_ad_user_csv' %}">
+                      <img class="w-8" src="{% static 'dist/images/export.png' %}" alt="">
+                    </a>
+                  {% endif %}
+                </div>
+                <div>
+                  <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="export-csv">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                  </button>
+                </div>
+            </div>
+            <!-- Modal body -->
+            <div class="p-6 space-y-6">
+              <div class="flex flex-col">
+                <div class="overflow-x-auto">
+                  <div class="inline-block min-w-full align-middle">
+                    <div class="overflow-hidden table-wrp shadow">
+                      {% include "includes/items-table.html" with items=softwares %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+    </div>
+  </div>
+
+
+
+    <!-- selected csv -->
+    <div id="export-selected-csv" tabindex="-1" aria-hidden="true" class="py-5 fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+      <div class="relative w-full max-w-7xl max-h-full">
+          <!-- Modal content -->
+          <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+              <!-- Modal header -->
+              <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+                  <div>
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                      Export selected as CSV
+                    </h3>
+                  </div>
+                  <div class="text-xl font-semibold text-gray-900 dark:text-white">
+                    {% if request.GET.order_by or request.GET.search or request.GET.snapshot %}
+                      {% with order_by=request.GET.order_by search=request.GET.search snapshot=request.GET.snapshot %}
+                        <a href="{% url 'export_control_ad_user_csv' %}?selected_rows=yes&{% if order_by %}order_by={{ order_by }}{% endif %}{% if order_by and search %}&{% endif %}{% if search %}search={{ search }}{% endif %}{% if snapshot %}&snapshot={{ snapshot }}{% endif %}">
+                          <img class="w-8" src="{% static 'dist/images/export.png' %}" alt="">
+                        </a>
+                      {% endwith %}
+                    {% else %}
+                      <a href="{% url 'export_control_ad_user_csv' %}?selected_rows=yes">
+                        <img class="w-8" src="{% static 'dist/images/export.png' %}" alt="">
+                      </a>
+                    {% endif %}
+                  </div>
+                  <div>
+                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="export-selected-csv">
+                      <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                      </svg>
+                      <span class="sr-only">Close modal</span>
+                    </button>
+                  </div>
+              </div>
+              <!-- Modal body -->
+              <div class="p-6 space-y-6">
+                <div class="flex flex-col">
+                  <div class="overflow-x-auto">
+                    <div class="inline-block min-w-full align-middle">
+                      <div class="overflow-hidden table-wrp shadow">
+                        {% include "includes/selected-items-table.html" with items=selected_rows_qs %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+    </div>
+  </div>
+
+  <!-- docx -->
+  <div id="export-docx" tabindex="-1" aria-hidden="true" class="py-5 fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-7xl max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <!-- Modal header -->
+            <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <div>
+                  <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    Export as DOCX
+                  </h3>
+                </div>
+                <div class="text-xl font-semibold text-gray-900 dark:text-white">
+                  {% if request.GET.order_by or request.GET.search or request.GET.snapshot %}
+                    {% with order_by=request.GET.order_by search=request.GET.search snapshot=request.GET.snapshot %}
+                      <a href="{% url 'export_control_ad_user_excel' %}?{% if order_by %}order_by={{ order_by }}{% endif %}{% if order_by and search %}&{% endif %}{% if search %}search={{ search }}{% endif %}{% if snapshot %}&snapshot={{ snapshot }}{% endif %}">
+                        <img class="w-8" src="{% static 'dist/images/export.png' %}" alt="">
+                      </a>
+                    {% endwith %}
+                  {% else %}
+                    <a href="{% url 'export_control_ad_user_excel' %}">
+                      <img class="w-8" src="{% static 'dist/images/export.png' %}" alt="">
+                    </a>
+                  {% endif %}
+                </div>
+                <div>
+                  <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="export-docx">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                  </button>
+                </div>
+            </div>
+            <!-- Modal body -->
+            <div class="p-6 space-y-6">
+              <div class="flex flex-col">
+                <div class="overflow-x-auto">
+                  <div class="inline-block min-w-full align-middle">
+                    <div class="overflow-hidden table-wrp shadow">
+                      {% include "includes/docx-items-table.html" with items=softwares %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+    </div>
+  </div>
+
+  <!-- selected docx -->
+  <div id="export-selected-docx" tabindex="-1" aria-hidden="true" class="py-5 fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-7xl max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <!-- Modal header -->
+            <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <div>
+                  <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    Export selected as DOCX
+                  </h3>
+                </div>
+                <div class="text-xl font-semibold text-gray-900 dark:text-white">
+                  {% if request.GET.order_by or request.GET.search or request.GET.snapshot %}
+                    {% with order_by=request.GET.order_by search=request.GET.search snapshot=request.GET.snapshot %}
+                      <a href="{% url 'export_control_ad_user_excel' %}?selected_rows=yes&{% if order_by %}order_by={{ order_by }}{% endif %}{% if order_by and search %}&{% endif %}{% if search %}search={{ search }}{% endif %}{% if snapshot %}&snapshot={{ snapshot }}{% endif %}">
+                        <img class="w-8" src="{% static 'dist/images/export.png' %}" alt="">
+                      </a>
+                    {% endwith %}
+                  {% else %}
+                    <a href="{% url 'export_control_ad_user_excel' %}?selected_rows=yes">
+                      <img class="w-8" src="{% static 'dist/images/export.png' %}" alt="">
+                    </a>
+                  {% endif %}
+                </div>
+                <div>
+                  <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="export-selected-docx">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                  </button>
+                </div>
+            </div>
+            <!-- Modal body -->
+            <div class="p-6 space-y-6">
+              <div class="flex flex-col">
+                <div class="overflow-x-auto">
+                  <div class="inline-block min-w-full align-middle">
+                    <div class="overflow-hidden table-wrp shadow">
+                      {% include "includes/docx-selected-items-table.html" with items=selected_rows_qs %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+    </div>
+  </div>
+
+  <!-- Tab modal -->
+  <div id="new-tab" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow-sm dark:bg-gray-700">
+            <!-- Modal header -->
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600 border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    Open a new Tab
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-toggle="new-tab">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
+            </div>
+            <!-- Modal body -->
+            <form action="{% url "add_to_tab" model_name='ControlADUser' model_choice='CONTROL_AD_USER' %}" method="post" class="p-4 md:p-5">
+              {% csrf_token %}
+
+              <input type="hidden" name="search_fields" value="{{ request.GET.search }}" >
+              <input type="hidden" name="order_by" value="{{ request.GET.order_by }}" >
+              <input type="hidden" name="snapshot" value="{{ request.GET.snapshot }}">
+              <input type="hidden" name="pre_columns" value="{{ pre_column }}">
+              <input type="hidden" name="pre_filters" value="{{ pre_filter }}">
+              <input type="hidden" name="base_view" value="{{ segment }}">
+              <input type="hidden" name="parent" value="{{ parent }}">
+              
+              <div class="grid gap-4 mb-4 grid-cols-2">
+                <div class="col-span-2">
+                  <label for="name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Name</label>
+                  <input type="text" name="fav_name" id="name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Tab name" required="">
+                </div>
+              </div>
+              <button type="submit" class="text-white inline-flex items-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                Save
+              </button>
+            </form>
+        </div>
+    </div>
+  </div> 
+
+  <!-- Upload modal -->
+  <div id="csv-upload-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow-sm dark:bg-gray-700">
+            <!-- Modal header -->
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600 border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    Upload a file
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-toggle="csv-upload-modal">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
+            </div>
+            <!-- Modal body -->
+            <form class="p-4 md:p-5" action="{% url "loader_csv_upload" table_name %}" method="post" enctype="multipart/form-data">
+              {% csrf_token %}
+                <div class="grid gap-4 mb-4 grid-cols-2">
+                  <div class="col-span-2">
+                    <label for="name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">File</label>
+                    <input name="csv_file" accept=".csv, .xlsx, .xls" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400" id="file_input" required type="file">
+                  </div>
+                </div>
+                <button type="submit" class="text-white inline-flex items-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                  Upload
+                </button>
+            </form>
+        </div>
+    </div>
+  </div> 
+
+  <!-- Query load modal -->
+  <div id="query-load-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow-sm dark:bg-gray-700">
+            <!-- Modal header -->
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600 border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    Query Load
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-toggle="query-load-modal">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
+            </div>
+            <!-- Modal body -->
+            <form class="p-4 md:p-5" action="{% url "loader_query_upload" table_name %}" method="post" enctype="multipart/form-data">
+              {% csrf_token %}
+                <div class="grid gap-4 mb-4 grid-cols-2">
+                  <div class="col-span-2">
+                    <label for="query" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select a Query</label>
+                    <select id="query" required name="query" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                      <option selected>Choose a query</option>
+                      {% for query in queries %}
+                        <option value="{{query.pk}}">{{ query.view_name }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+                <button type="submit" class="text-white inline-flex items-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                  Upload
+                </button>
+            </form>
+        </div>
+    </div>
+  </div> 
+
+  <!-- API load modal -->
+  <div id="sap-api-load-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow-sm dark:bg-gray-700">
+            <!-- Modal header -->
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600 border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    SAP API Load
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-toggle="sap-api-load-modal">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
+            </div>
+            <!-- Modal body -->
+            <form class="p-4 md:p-5" action="{% url "trigger_fetch_api_data" table_name %}" method="post" enctype="multipart/form-data">
+              {% csrf_token %}
+                <div class="grid gap-4 mb-4 grid-cols-2">
+                  <div class="col-span-2">
+                    <label for="sap_api" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select an API</label>
+                    <select id="sap_api" required name="sap_api" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                      <option selected>Choose an API</option>
+                      {% for api in sap_apis %}
+                        <option value="{{api.pk}}">{{ api.view_name }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+                <button type="submit" class="text-white inline-flex items-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                  Load
+                </button>
+            </form>
+        </div>
+    </div>
+  </div> 
+
+  {% if table_name and join_model_instance %}
+  <!-- Refresh modal modal -->
+  <div id="refresh-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow-sm dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600 border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    Refresh
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-toggle="refresh-modal">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
+            </div>
+            <form class="p-4 md:p-5" action="{% url "load_data_to_join_model" table_name join_model_instance %}" method="post">
+              {% csrf_token %}
+              
+              <div class="grid gap-4 mb-4 grid-cols-2">
+                <div class="col-span-2">
+                  <label for="method" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select a Join method</label>
+                  <select id="method" required name="method" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                    <option selected value="">Choose a join method</option>
+                    <option {% if "join_method"|default_values:join_model_instance == 'contains' %}selected{% endif %} value="contains">Contains</option>
+                    <option {% if "join_method"|default_values:join_model_instance == 'winkler_levenshtein' %}selected{% endif %} value="winkler_levenshtein">Vector Match</option>
+                    <option {% if "join_method"|default_values:join_model_instance == 'split' %}selected{% endif %} value="split">Split</option>
+                    <option {% if "join_method"|default_values:join_model_instance == 'pre_post' %}selected{% endif %} value="pre_post">Pre / Post</option>
+                    <option {% if "join_method"|default_values:join_model_instance == 'email_join' %}selected{% endif %} value="email_join">Email Join</option>
+                    <option {% if "join_method"|default_values:join_model_instance == 'custom' %}selected{% endif %} value="custom">Custom</option>
+                  </select>
+                </div>
+                <div class="col-span-2" id="contains-wrapper" style="display: none;">
+                  <div class="flex items-center">
+                    <input id="c_full_word_match" type="checkbox" name="c_full_word_match" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                    <label for="c_full_word_match" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Full word match</label>
+                  </div>
+                </div>
+                <div class="col-span-2" id="percent-wrapper" style="display: none;">
+                  <div class="mb-3 grid grid-cols-2">
+                    <div class="col-span-1">
+                      <div class="flex items-center mb-3">
+                        <input id="jaro-winkler" type="checkbox" {% if "jaro_winkler"|default_values:join_model_instance %}checked{% endif %} name="jaro_winkler" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                        <label for="jaro-winkler" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Jaro-Winkler</label>
+                      </div>
+                    </div>
+                    <div class="col-span-1">
+                      <div class="flex items-center mb-3">
+                        <input id="levenshtein" type="checkbox" {% if "levenshtein"|default_values:join_model_instance %}checked{% endif %} name="levenshtein" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                        <label for="levenshtein" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Levenshtein </label>
+                      </div>
+                    </div>
+                    <div class="col-span-1">
+                      <div class="flex items-center mb-3">
+                        <input id="token_set_ratio" type="checkbox" {% if "token_set_ratio"|default_values:join_model_instance %}checked{% endif %} name="token_set_ratio" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                        <label for="token_set_ratio" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Token set Ratio</label>
+                      </div>
+                    </div>
+                    <div class="col-span-1">
+                      <div class="flex items-center mb-3">
+                        <input id="phonetic" type="checkbox" {% if "phonetic"|default_values:join_model_instance %}checked{% endif %} name="phonetic" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                        <label for="phonetic" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Phonetic</label>
+                      </div>
+                    </div>
+                    <div class="col-span-1">
+                      <div class="flex items-center mb-3">
+                        <input id="fuzzy_wuzzy" type="checkbox" {% if "fuzzy_wuzzy"|default_values:join_model_instance %}checked{% endif %} name="fuzzy_wuzzy" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                        <label for="fuzzy_wuzzy" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Fuzzy Wuzzy</label>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="percent" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Similarity Threshold</label>
+                    <select id="percent" required name="percent" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                      <option {% if "similarity_threshold"|default_values:join_model_instance == 50 %}selected{% endif %} value="50">50% - Relaxed</option>
+                      <option {% if "similarity_threshold"|default_values:join_model_instance == 55 %}selected{% endif %} value="55">55% - Relaxed</option>
+                      <option {% if "similarity_threshold"|default_values:join_model_instance == 60 %}selected{% endif %} value="60">60% - Normal</option>
+                      <option {% if "similarity_threshold"|default_values:join_model_instance == 65 %}selected{% endif %} value="65">65% - Normal</option>
+                      <option {% if "similarity_threshold"|default_values:join_model_instance == 70 %}selected{% endif %} value="70">70% - Strict</option>
+                      <option {% if "similarity_threshold"|default_values:join_model_instance == 75 %}selected{% endif %} value="75">75% - Strict</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-span-2" id="split-wrapper" style="display: none;">
+                  <div class="flex items-center mb-3">
+                    <input id="split-space" type="checkbox" name="split_space" {% if "split_by_space"|default_values:join_model_instance %}checked{% endif %} class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                    <label for="split-space" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Split by space</label>
+                  </div>
+                  <div class="mb-3">
+                    <label for="split-char" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Split Character</label>
+                    <input type="text" name="split_char" id="split-char" value="{{ 'split_character'|default_values:join_model_instance }}" placeholder="Split Character" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                  </div>
+                  <div class="mb-3">
+                    <label for="word_position" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Matching word position</label>
+                    <select id="word_position" required name="word_position" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                      <option {% if "match_word_position"|default_values:join_model_instance == 1 %}selected{% endif %} value="1">1st</option>
+                      <option {% if "match_word_position"|default_values:join_model_instance == 2 %}selected{% endif %} value="2">2nd</option>
+                      <option {% if "match_word_position"|default_values:join_model_instance == 3 %}selected{% endif %} value="3">3rd</option>
+                      <option {% if "match_word_position"|default_values:join_model_instance == 4 %}selected{% endif %} value="4">4th</option>
+                      <option {% if "match_word_position"|default_values:join_model_instance == 5 %}selected{% endif %} value="5">5th</option>
+                    </select>
+                  </div>
+                  <div class="flex items-center">
+                    <input id="s_full_word_match" type="checkbox" name="s_full_word_match" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                    <label for="s_full_word_match" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Full word match</label>
+                  </div>
+                </div>
+                <div class="col-span-2" id="pre-post-wrapper" style="display: none;">
+                  <div class="mb-3">
+                    <label for="pre_char" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Number of Pre char to be remove</label>
+                    <input type="number" name="pre_char" id="pre_char" value="{{ 'pre_char'|default_values:join_model_instance }}" placeholder="Number of Pre char to be remove" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                  </div>
+                  <div class="mb-3">
+                    <label for="post_char" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Number of Post char to be remove</label>
+                    <input type="number" name="post_char" id="post_char" value="{{ 'post_char'|default_values:join_model_instance }}" placeholder="Number of Post char to be remove" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                  </div>
+                  <div class="flex items-center">
+                    <input id="pp_full_word_match" type="checkbox" name="pp_full_word_match" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                    <label for="pp_full_word_match" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Full word match</label>
+                  </div>
+                </div>
+                <div class="col-span-2" id="email-wrapper" style="display: none;">
+                  <div class="mb-3">
+                    <label for="left-split-char" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Split Character</label>
+                    <input type="text" name="left_split_char" id="left-split-char" value="{{ 'left_split_char'|default_values:join_model_instance|default_if_none:"" }}" placeholder="Split Character" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                  </div>
+                  <div class="mb-3">
+                    <label for="email_pre_char" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Number of Pre char to be remove</label>
+                    <input type="number" name="email_pre_char" id="email_pre_char" value="{{ 'email_pre_char'|default_values:join_model_instance }}" placeholder="Number of Pre char to be remove" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                  </div>
+                  <div class="mb-3">
+                    <label for="email_post_char" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Number of Post char to be remove</label>
+                    <input type="number" name="email_post_char" id="email_post_char" value="{{ 'email_post_char'|default_values:join_model_instance }}" placeholder="Number of Post char to be remove" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                  </div>
+                </div>
+                <div class="col-span-2" id="custom-wrapper" style="display: none;">
+                  <div class="mb-3">
+                    <label for="fields_to_pass" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Fields to pass</label>
+                    <div class="relative flex items-center ml-auto space-x-2 sm:space-x-3">
+                      <button id="fields_to_pass" data-dropdown-toggle="fieldsToPassCheckbox" class="inline-flex items-center justify-between w-full px-2 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700" type="button">
+                        Select fields
+                        <svg class="w-2.5 h-2.5 ml-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+                        </svg>
+                      </button>
+                      <div id="fieldsToPassCheckbox" class="absolute min-w-full z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow dark:bg-gray-700 dark:divide-gray-600">
+                        <ul id="dropdownDeltaForeignKeyList" class="p-3 space-y-3 text-sm text-gray-700 dark:text-gray-200 max-h-60 overflow-y-auto">
+                          {% for field in db_field_names %}
+                            <li>
+                              <div class="flex items-center">
+                                <input id="checkbox-item-{{field}}" type="checkbox" value="{{ field }}" name="fields_to_pass"
+                                  class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 fields_to_pass">
+                                <label for="checkbox-item-{{field}}"
+                                  class="ml-2 text-sm font-medium text-gray-900 dark:text-white">{{field}}</label>
+                              </div>
+                            </li>
+                          {% endfor %}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="py_function" class="inline-flex items-center gap-2 mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                      Python Function
+                      <svg 
+                        data-modal-target="python-prompt-modal" 
+                        data-modal-toggle="python-prompt-modal"
+                        class="cursor-pointer w-5 h-5 text-gray-800 dark:text-white" 
+                        aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 11h2v5m-2 0h4m-2.592-8.5h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                      </svg>
+                    </label>
+                    <div class="grid grid-cols-5 gap-3">
+                      <div class="col-span-3">
+                        <select id="py_function" name="py_function" class="bg-gray-50 w-full border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                          <option value="">Select function</option>
+                          {% for function in py_functions %}
+                          <option 
+                            data-id="{{ function.id|escape }}" 
+                            data-name="{{ function.name|escape }}"
+                            data-func="{{ function.func|escape }}" 
+                            data-description="{{ function.description|escape }}"
+                            value="{{ function.id }}"
+                          >{{ function.name }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="col-span-2">
+                        <button 
+                          type="button"
+                          data-modal-target="python-function-modal" 
+                          data-modal-toggle="python-function-modal"
+                          class="py-2.5 w-full px-5 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
+                        >
+                          Add Function
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mb-3 hidden" id="func_display">
+                    <label for="selected_func" class="inline-flex items-center gap-2 mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                      Function
+                      <svg 
+                        data-modal-target="edit-function-modal" 
+                        data-modal-toggle="edit-function-modal"
+                        class="cursor-pointer w-5 h-5 text-gray-800 dark:text-white" 
+                        aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m14.304 4.844 2.852 2.852M7 7H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4.5m2.409-9.91a2.017 2.017 0 0 1 0 2.853l-6.844 6.844L8 14l.713-3.565 6.844-6.844a2.015 2.015 0 0 1 2.852 0Z"/>
+                      </svg>
+                    </label>
+                    <textarea placeholder="Function" readonly rows="5" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" id="selected_func"></textarea>
+                  </div>
+                  <div class="mb-3 hidden">
+                    <label for="c_percent" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Similarity Threshold</label>
+                    <select id="c_percent" required name="c_percent" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                      <option {% if "c_similarity_threshold"|default_values:join_model_instance == 50 %}selected{% endif %} value="50">50% - Relaxed</option>
+                      <option {% if "c_similarity_threshold"|default_values:join_model_instance == 55 %}selected{% endif %} value="55">55% - Relaxed</option>
+                      <option {% if "c_similarity_threshold"|default_values:join_model_instance == 60 %}selected{% endif %} value="60">60% - Normal</option>
+                      <option {% if "c_similarity_threshold"|default_values:join_model_instance == 65 %}selected{% endif %} value="65">65% - Normal</option>
+                      <option {% if "c_similarity_threshold"|default_values:join_model_instance == 70 %}selected{% endif %} value="70">70% - Strict</option>
+                      <option {% if "c_similarity_threshold"|default_values:join_model_instance == 75 %}selected{% endif %} value="75">75% - Strict</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <button type="submit" class="text-white inline-flex items-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                Refresh
+              </button>
+            </form>
+        </div>
+    </div>
+  </div> 
+
+  <!-- Prompt modal -->
+  <div id="python-prompt-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow-sm dark:bg-gray-700">
+            <!-- Modal header -->
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600 border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                  Prompt
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-toggle="python-prompt-modal">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
+            </div>
+            <!-- Modal body -->
+            <form class="p-4 md:p-5" action="{% url "create_py_func_prompt" %}" method="post">
+              {% csrf_token %}
+                <div class="grid gap-4 mb-4 grid-cols-2">
+                  <div class="col-span-2">
+                    <label for="py_prompt" class="inline-flex items-center gap-2 mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                      Prompt
+                      <svg id="copyPrompt" class="cursor-pointer w-5 h-5 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="M9 8v3a1 1 0 0 1-1 1H5m11 4h2a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-7a1 1 0 0 0-1 1v1m4 3v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-7.13a1 1 0 0 1 .24-.65L7.7 8.35A1 1 0 0 1 8.46 8H13a1 1 0 0 1 1 1Z"/>
+                      </svg>
+                    </label>
+                    <textarea name="py_prompt" placeholder="Prompt" rows="5" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" id="copy_py_prompt">{{ py_prompt|default_if_none:"" }}</textarea>
+                  </div>
+                  <div class="col-span-2">
+                    <label for="first_list" class="inline-flex items-center gap-2 mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                      First List
+                      <svg id="copyFirstList" class="cursor-pointer w-5 h-5 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="M9 8v3a1 1 0 0 1-1 1H5m11 4h2a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-7a1 1 0 0 0-1 1v1m4 3v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-7.13a1 1 0 0 1 .24-.65L7.7 8.35A1 1 0 0 1 8.46 8H13a1 1 0 0 1 1 1Z"/>
+                      </svg>
+                    </label>
+                    <textarea placeholder="First List" rows="5" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" id="copy_first_list">{{ table_name|get_base_rows }}</textarea>
+                  </div>
+                  <div class="col-span-2">
+                    <label for="second_list" class="inline-flex items-center gap-2 mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                      Second List
+                      <svg id="copySecondList" class="cursor-pointer w-5 h-5 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="M9 8v3a1 1 0 0 1-1 1H5m11 4h2a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-7a1 1 0 0 0-1 1v1m4 3v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-7.13a1 1 0 0 1 .24-.65L7.7 8.35A1 1 0 0 1 8.46 8H13a1 1 0 0 1 1 1Z"/>
+                      </svg>
+                    </label>
+                    <textarea placeholder="Second List" rows="5" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" id="copy_second_list">{{ table_name|get_delta_rows }}</textarea>
+                  </div>
+                </div>
+                <button type="submit" class="text-white inline-flex items-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                  Save
+                </button>
+            </form>
+        </div>
+    </div>
+  </div> 
+
+  <!-- Function modal -->
+  <div id="python-function-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow-sm dark:bg-gray-700">
+            <!-- Modal header -->
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600 border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                  Function
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-toggle="python-function-modal">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
+            </div>
+            <!-- Modal body -->
+            <form class="p-4 md:p-5" action="{% url "create_py_func" %}" method="post">
+              {% csrf_token %}
+                <div class="grid gap-4 mb-4 grid-cols-2">
+                  <div class="col-span-2">
+                    <label for="py_function" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Name</label>
+                    <input type="text" name="name" placeholder="Name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" id="py_function">
+                  </div>
+                  <div class="col-span-2">
+                    <label for="function" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Function</label>
+                    <textarea placeholder="Function" name="function" rows="5" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" id="function"></textarea>
+                  </div>
+                  <div class="col-span-2">
+                    <label for="description" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+                    <textarea placeholder="Description" name="description" rows="5" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" id="description"></textarea>
+                  </div>
+                </div>
+                <button type="submit" class="text-white inline-flex items-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                  Save
+                </button>
+            </form>
+        </div>
+    </div>
+  </div> 
+
+
+  <!-- Edit Function modal -->
+  <div id="edit-function-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow-sm dark:bg-gray-700">
+            <!-- Modal header -->
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600 border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                  Function
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-toggle="edit-function-modal">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
+            </div>
+            <!-- Modal body -->
+            <form class="p-4 md:p-5" action="{% url "edit_py_func" %}" method="post">
+              {% csrf_token %}
+
+                <input type="hidden" name="func_id" id="edit_function_id">
+                <div class="grid gap-4 mb-4 grid-cols-2">
+                  <div class="col-span-2">
+                    <label for="edit_py_function" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Name</label>
+                    <input type="text" name="name" placeholder="Name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" id="edit_py_function">
+                  </div>
+                  <div class="col-span-2">
+                    <label for="edit_function" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Function</label>
+                    <textarea placeholder="Function" name="function" rows="5" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" id="edit_function"></textarea>
+                  </div>
+                  <div class="col-span-2">
+                    <label for="edit_description" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+                    <textarea placeholder="Description" name="description" rows="5" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" id="edit_description"></textarea>
+                  </div>
+                </div>
+                <button type="submit" class="text-white inline-flex items-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                  Save
+                </button>
+            </form>
+        </div>
+    </div>
+  </div> 
+
+  {% endif %}
+
+  <!-- pdf -->
+  <div id="export-pdf" tabindex="-1" aria-hidden="true" class="py-5 fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-7xl max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <!-- Modal header -->
+            <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <div>
+                  <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    Export as PDF
+                  </h3>
+                </div>
+                {% comment %} <div class="text-xl font-semibold text-gray-900 dark:text-white">
+                  <a href="{% url "export_software_pdf" %}?page={{ softwares.number }}">
+                    <img class="w-8" src="{% static "dist/images/export.png" %}" alt="">
+                  </a>
+                </div> {% endcomment %}
+                <div>
+                  <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="export-pdf">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                  </button>
+                </div>
+            </div>
+            <!-- Modal body -->
+            <div class="p-6 space-y-6">
+              <div class="flex flex-col">
+                <div class="overflow-x-auto">
+                  <div class="inline-block min-w-full align-middle">
+                    <div class="overflow-hidden shadow">
+                      {% include "includes/items-table.html" with items=softwares %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+    </div>
+  </div>
+
+
+</main>
+
+{% endblock content %}
+
+{% block extra_js %}
+
+<!-- Script for new filter start -->
+<script>
+  let filterIndex = 0; 
+  document.addEventListener('DOMContentLoaded', function () {
+    const savedFilters = JSON.parse('{{ saved_filters|escapejs }}');
+
+    savedFilters.forEach((filter) => {
+      addFilter(filter.field_name, filter.value_start, filter.value_end, filter.is_not, filter.is_null, filter.is_not_null, filter.is_unique, filter.is_count, filter.id);
+    });
+  });
+
+  function setSummaryText(index, valueStart, valueEnd, isNot, isNull, isNotNull, isUnique, isCount) {
+    const selectedField = document.querySelector(`[name="field_name_${index}"]`);
+    const fieldType = selectedField.options[selectedField.selectedIndex].getAttribute('data-type');
+    let summaryText = '';
+
+    if (valueStart && valueEnd) {
+      summaryText = `From: ${valueStart} → To: ${valueEnd}`;
+    } else if (valueStart) {
+      if (fieldType === 'Text') {
+        summaryText = valueStart;
+      } else {
+        summaryText = `From: ${valueStart}`;
+      }
+    } else if (valueEnd) {
+      summaryText = `To: ${valueEnd}`;
+    } else {
+      summaryText = 'Options';
+    }
+
+    let badges = [];
+    if (isNot) badges.push('<span class="badge bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-xs">not</span>');
+    if (isNull) badges.push('<span class="badge bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-xs">null</span>');
+    if (isNotNull) badges.push('<span class="badge bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-xs">!null</span>');
+    if (isUnique) badges.push('<span class="badge bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-xs">!</span>');
+    if (isCount) badges.push('<span class="badge bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-xs">!#</span>');
+
+    const button = document.getElementById(`options-button-${index}`);
+    button.innerHTML = `${summaryText} ${badges.join(' ')}`;
+  }
+
+  function addFilter(fieldName = '', valueStart = '', valueEnd = '', isNot = false, isNull = false, isNotNull = false, isUnique = false, isCount = false, filterId = null) {
+    const container = document.getElementById('filters-container');
+    const filterDiv = document.createElement('div');
+    filterDiv.className = 'filter-group';
+
+    const index = ++filterIndex;
+
+    filterDiv.setAttribute('data-filter-index', index);
+
+    filterDiv.innerHTML = `
+      <div class="flex items-start gap-2 mt-3">
+        <select 
+          name="field_name_${index}" 
+          onchange="updateInputs(${index})"
+          class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+        >
+          <option value="">Select Field</option>
+          {% for field in fields %}
+            <option value="{{ field.name }}" data-type="{{ field.type }}"
+              ${fieldName === '{{ field.name }}' ? 'selected' : ''}>
+              {{ field.name|rename_field:join_model_instance }}
+            </option>
+          {% endfor %}
+        </select>
+
+        <div>
+          <!-- Dropdown Toggle Button -->
+          <button type="button" onclick="toggleOptions(${index})"
+              id="options-button-${index}" 
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+              Loading...
+          </button>
+
+          <div id="options-container-${index}" class="absolute mt-2 bg-white shadow-lg border rounded p-3 hidden z-10">
+            <div class="input-area" id="input-area-${index}">
+              <!-- Dynamic Inputs for Filter ${index} will go here -->
+            </div>
+
+            <div class="mt-3">
+              <div class="flex items-center mb-1">
+                <input type="checkbox" id="is_not_${index}" name="is_not_${index}" value="true" ${isNot ? 'checked' : ''} class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                <label for="is_not_${index}" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Not</label>
+              </div>
+              <div class="flex items-center mb-1">
+                <input type="checkbox" id="is_null_${index}" name="is_null_${index}" value="true" ${isNull ? 'checked' : ''} class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                <label for="is_null_${index}" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Null</label>
+              </div>
+              <div class="flex items-center mb-1">
+                <input type="checkbox" id="is_not_null_${index}" name="is_not_null_${index}" value="true" ${isNotNull ? 'checked' : ''} class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                <label for="is_not_null_${index}" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Not Null</label>
+              </div>
+              <div class="flex items-center mb-1">
+                <input type="checkbox" id="is_unique_${index}" name="is_unique_${index}" value="true" ${isUnique ? 'checked' : ''} class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                <label for="is_unique_${index}" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Unique</label>
+              </div>
+              <div class="flex items-center mb-1">
+                <input type="checkbox" id="is_count_${index}" name="is_count_${index}" value="true" ${isCount ? 'checked' : ''} class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"> 
+                <label for="is_count_${index}" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Count</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add Delete Button -->
+        <button 
+          type="button" 
+          onclick="deleteFilter(${index}, ${filterId})"
+          class="focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2  dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900"
+        >X</button>
+        <input type="hidden" name="filter_id_${index}" value="${filterId}">
+      </div>
+    `;
+    container.appendChild(filterDiv);
+
+    setSummaryText(index, valueStart, valueEnd, isNot, isNull, isNotNull, isUnique, isCount);
+    updateInputs(index, valueStart, valueEnd);
+  }
+
+  function updateInputs(index, valueStart = '', valueEnd = '') {
+    const selectedField = document.querySelector(`[name="field_name_${index}"]`);
+    const inputArea = document.getElementById(`input-area-${index}`);
+    const fieldType = selectedField.options[selectedField.selectedIndex].getAttribute('data-type');
+
+    let html = '';
+    if (fieldType === 'Text') {
+      html = `
+      <div>
+        <input 
+          type="text" 
+          name="value_start_${index}" 
+          placeholder="Enter value"
+          class="input-field bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
+          value="${valueStart}"
+        >
+      </div>`;
+    } else if (fieldType === 'Date') {
+      html = `
+      <div class="flex items-center">
+        <input 
+          type="date" 
+          name="value_start_${index}" 
+          class="input-field bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
+          value="${valueStart}"
+        >
+        <input 
+          type="date" 
+          name="value_end_${index}" 
+          class="input-field bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-r-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
+          value="${valueEnd}"
+        >
+      </div>`;
+    } else if (fieldType === 'Integer' || fieldType === 'Float') {
+      html = `
+      <div class="flex items-center">
+        <input 
+          type="number" 
+          name="value_start_${index}"
+          placeholder="From"
+          class="input-field w-28 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
+          value="${valueStart}"
+        >
+        <input 
+          type="number" 
+          name="value_end_${index}"
+          placeholder="To"
+          class="input-field w-28 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-r-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
+          value="${valueEnd}"
+        >
+      </div>`;
+    }
+    inputArea.innerHTML = html;
+  }
+
+  function deleteFilter(index, filterId) {
+    const filterDiv = document.querySelector(`[data-filter-index="${index}"]`);
+    
+    if (filterId) {
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+      const data = new FormData();
+      data.append('filter_id', filterId);
+      data.append('csrfmiddlewaretoken', csrfToken);
+
+      fetch("{% url 'delete_saved_filter' %}", {
+        method: 'POST',
+        body: data
+      })
+      .then(response => response.json())
+      .then(responseData => {
+        if (responseData.success) {
+          window.location.reload();
+        } else {
+          alert('Failed to delete filter');
+        }
+      });
+    } else {
+      if (filterDiv) {
+        filterDiv.remove();
+      }
+    }
+  }
+
+  function toggleOptions(index) {
+    const container = document.getElementById(`options-container-${index}`);
+    if (container.classList.contains('hidden')) {
+        container.classList.remove('hidden');
+    } else {
+        container.classList.add('hidden');
+    }
+  }
+
+  document.addEventListener('click', function (event) {
+    const dropdowns = document.querySelectorAll('[id^="options-container-"]');
+    
+    dropdowns.forEach(dropdown => {
+      if (!dropdown.contains(event.target) && 
+        !dropdown.previousElementSibling.contains(event.target)) {
+        dropdown.classList.add('hidden');
+      }
+    });
+  });
+</script>
+<!-- Script for new filter end -->
+
+<script>
+  function getComboA(selectObject) {
+    var value = selectObject.value;
+  
+    fetch('/tables/create-control-ad-user-page-items/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRFToken': '{{ csrf_token }}',
+      },
+      body: `items=${value}`
+    })
+    .then(response => {
+      location.reload()
+    })
+  }
+</script>
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var selectAllCheckbox = document.getElementById('selectAll');
+    var dropdown = document.getElementById('dropdownDefaultCheckbox');
+    var cancelButton = document.querySelector('#dropdownDefaultCheckbox .cancel-button');
+    var checkboxes = document.querySelectorAll('#dropdownDefaultCheckbox input[type="checkbox"]');
+    var saveButton = document.querySelector('#dropdownDefaultCheckbox .save-button');
+
+    // Function to update "Select All" checkbox state
+    function updateSelectAllState() {
+      var validCheckboxes = Array.from(checkboxes).filter(cb => !cb.classList.contains('pre-columns') && cb.id !== 'selectAll');
+      var allChecked = validCheckboxes.every(cb => cb.checked);
+      var noneChecked = validCheckboxes.every(cb => !cb.checked);
+
+      selectAllCheckbox.checked = allChecked;
+      // selectAllCheckbox.indeterminate = !allChecked && !noneChecked;
+    }
+
+    // "Select All" functionality
+    selectAllCheckbox.addEventListener('change', function () {
+      checkboxes.forEach(function (checkbox) {
+        if (!checkbox.classList.contains('pre-columns')) {
+          checkbox.checked = selectAllCheckbox.checked;
+          var event = new Event('change');
+          checkbox.dispatchEvent(event);
+        }
+      });
+    });
+    
+    // Update "Select All" based on individual checkboxes
+    checkboxes.forEach(function (checkbox) {
+      checkbox.addEventListener('change', function () {
+        updateSelectAllState();
+      });
+    });
+
+    // Initialize checkbox visibility and add event listeners
+    checkboxes.forEach(function (checkbox) {
+      var targetColumnId = checkbox.getAttribute('data-target');
+      var targetColumn = document.getElementById('th_' + targetColumnId);
+      var exportTargetColumn = document.getElementById('th_' + targetColumnId + '_export');
+      var exportSelectedTargetColumn = document.getElementById('th_' + targetColumnId + '_selected_export');
+      var docxExportTargetColumn = document.getElementById('th_' + targetColumnId + '_docx_export');
+      var docxExportSelectedTargetColumn = document.getElementById('th_' + targetColumnId + '_docx_selected_export');
+      var targetDataCells = document.querySelectorAll('.td_' + targetColumnId);
+
+      if (checkbox.checked) {
+        targetColumn.style.display = 'none';
+        exportTargetColumn.style.display = 'none';
+        exportSelectedTargetColumn.style.display = 'none';
+        docxExportTargetColumn.style.display = 'none';
+        docxExportSelectedTargetColumn.style.display = 'none';
+        targetDataCells.forEach(function (dataCell) {
+          dataCell.style.display = 'none';
+        });
+      }
+
+      checkbox.addEventListener('change', function () {
+        var targetColumnId = this.getAttribute('data-target');
+        var targetColumn = document.getElementById('th_' + targetColumnId);
+        var exportTargetColumn = document.getElementById('th_' + targetColumnId + '_export');
+        var exportSelectedTargetColumn = document.getElementById('th_' + targetColumnId + '_selected_export');
+        var docxExportTargetColumn = document.getElementById('th_' + targetColumnId + '_docx_export');
+        var docxExportSelectedTargetColumn = document.getElementById('th_' + targetColumnId + '_docx_selected_export');
+        var targetDataCells = document.querySelectorAll('.td_' + targetColumnId);
+
+        if (this.checked) {
+          targetColumn.style.display = 'none';
+          exportTargetColumn.style.display = 'none';
+          exportSelectedTargetColumn.style.display = 'none';
+          docxExportTargetColumn.style.display = 'none';
+          docxExportSelectedTargetColumn.style.display = 'none';
+          targetDataCells.forEach(function (dataCell) {
+            dataCell.style.display = 'none';
+          });
+        } else {
+          targetColumn.style.display = '';
+          exportTargetColumn.style.display = '';
+          exportSelectedTargetColumn.style.display = '';
+          docxExportTargetColumn.style.display = '';
+          docxExportSelectedTargetColumn.style.display = '';
+          targetDataCells.forEach(function (dataCell) {
+            dataCell.style.display = '';
+          });
+        }
+      });
+    });
+
+    // Save changes to the database
+    saveButton.addEventListener('click', function () {
+      var data = [];
+
+      checkboxes.forEach(function (checkbox) {
+        if (checkbox.id !== 'selectAll') {
+          data.push({
+            key: checkbox.getAttribute('data-target'),
+            value: checkbox.checked
+          });
+        }
+      });
+
+      fetch('/tables/create-control-ad-user-hide-show-items/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: JSON.stringify(data)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.message) {
+          console.log(data.message);
+          dropdown.classList.add('hidden');
+        } else {
+          console.error(data.error || 'Something went wrong.')
+        }
+      })
+      .catch(error => console.error('Error:', error));
+    });
+
+    // Close dropdown on Cancel button click
+    cancelButton.addEventListener('click', function () {
+      dropdown.classList.add('hidden');
+    });
+
+    // Initial update for "Select All" checkbox state
+    updateSelectAllState();
+  });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const paginationLinks = document.querySelectorAll('.page-link');
+    
+    paginationLinks.forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        const page = link.getAttribute('data-page');
+        const params = new URLSearchParams(window.location.search);
+        params.set('page', page);
+        window.location.href = `${window.location.pathname}?${params.toString()}`;
+      });
+    });
+  });
+</script>
+
+<script>
+  function toggleRotation() {
+    document.querySelectorAll('.overflow-x-auto[style], .inline-block[style]').forEach(function(element) {
+      if (element.style.transform === '') {
+        element.style.transform = 'rotateX(180deg)';
+      } else {
+        element.style.transform = '';
+      }
+    });
+  }
+  function handleClick(event) {
+    const clickedElement = event.target;
+    const isActionButton = clickedElement.closest('.action-btn');
+    const isInsideModal = clickedElement.closest('.action-modal');
+
+    if (isInsideModal) {
+      return;
+    }
+
+    if (!isActionButton) {
+      document.querySelectorAll('.overflow-x-auto[style], .inline-block[style]').forEach(function(element) {
+        element.style.transform = 'rotateX(180deg)';
+      })
+    } else {
+      document.querySelectorAll('.overflow-x-auto[style], .inline-block[style]').forEach(function(element) {
+        element.style.transform = '';
+      })
+    }
+
+    const updateButtons = document.querySelectorAll('.rotate-toggle-button');
+
+    updateButtons.forEach(function(button) {
+      button.addEventListener('click', function() {
+        document.querySelectorAll('.overflow-x-auto[style], .inline-block[style]').forEach(function(element) {
+          element.style.transform = 'rotateX(180deg)';
+        })
+      });
+    });
+  }
+  document.addEventListener('click', handleClick);
+</script>
+
+<script>
+  // JavaScript for Real-Time Search
+  document.getElementById('searchInput').addEventListener('input', function () {
+    const searchQuery = this.value.toLowerCase();
+    const listItems = Array.from(document.querySelectorAll('#dropdownList li')).filter(
+      item => item.id !== 'selectAllParent' && !item.classList.contains('pre-columns-parent')
+    );
+
+    listItems.forEach(item => {
+      const label = item.querySelector('label').textContent.toLowerCase();
+      if (label.includes(searchQuery)) {
+        item.classList.remove('hidden');
+      } else {
+        item.classList.add('hidden');
+      }
+    });
+  });
+</script>
+
+<script>
+  const list = document.getElementById('dropdownList');
+  let draggedItem = null;
+
+  list.addEventListener('dragstart', (e) => {
+    draggedItem = e.target.closest('li');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+
+  list.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    const target = e.target.closest('li');
+    if (target && target !== draggedItem) {
+      const rect = target.getBoundingClientRect();
+      const next = (e.clientY - rect.top) / (rect.bottom - rect.top) > 0.5;
+      list.insertBefore(draggedItem, next ? target.nextSibling : target);
+    }
+  });
+
+  list.addEventListener('drop', (e) => {
+    e.preventDefault();
+    draggedItem = null;
+  });
+
+  document.getElementById('save-order').addEventListener('click', () => {
+    let orderedCols = [];
+    list.querySelectorAll('li:not(.pre-columns-parent)').forEach((li, index) => {
+      orderedCols.push({
+        key: li.getAttribute('data-col'),
+        order: index
+      });
+    });
+
+    fetch("{% url 'save_column_order' %}", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": "{{ csrf_token }}",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        table_name: "ControlADUser",
+        column_order: orderedCols
+      })
+    }).then(response => {
+      if (response.ok) {
+        location.reload();
+      }
+    });
+  });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    let shouldReload = false;
+    const params = new URLSearchParams(window.location.search);
+
+    // Handle ordering
+    const orderLinks = document.querySelectorAll('.order-link');
+    const storedOrderBy = localStorage.getItem('control_ad_user_order_by');
+
+    orderLinks.forEach(link => {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        const order_by = link.getAttribute('data-order');
+        localStorage.setItem('control_ad_user_order_by', order_by);
+        params.set('order_by', order_by);
+        window.location.replace(`${window.location.pathname}?${params.toString()}`);
+      });
+    });
+
+    if (storedOrderBy && !params.has('order_by')) {
+      params.set('order_by', storedOrderBy);
+      shouldReload = true;
+    }
+
+    // Handle search
+    const searchForm = document.getElementById('search-form');
+    const storedSearch = localStorage.getItem('control_ad_user_search');
+
+    if (searchForm) {
+      searchForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const searchInput = document.getElementById('control-ad-user-search');
+        const search = searchInput.value;
+        localStorage.setItem('control_ad_user_search', search);
+        params.set('search', search);
+        window.location.replace(`${window.location.pathname}?${params.toString()}`);
+      });
+    }
+
+    if (storedSearch && !params.has('search')) {
+      params.set('search', storedSearch);
+      shouldReload = true;
+    }
+
+    // Handle snapshot selection
+    const selectElement = document.getElementById('snapshots');
+    const storedSnapshot = localStorage.getItem('control_ad_user');
+
+    if (selectElement) {
+      selectElement.addEventListener('change', function () {
+        const selectedValue = selectElement.value;
+        localStorage.setItem('control_ad_user', selectedValue);
+        params.set('snapshot', selectedValue);
+        window.location.replace(`${window.location.pathname}?${params.toString()}`);
+      });
+    }
+
+    if (storedSnapshot && !params.has('snapshot')) {
+      params.set('snapshot', storedSnapshot);
+      shouldReload = true;
+    }
+
+    // **Trigger reload only once if needed**
+    if (shouldReload && !localStorage.getItem('firstLoadDone')) {
+      localStorage.setItem('firstLoadDone', 'true');
+      window.location.replace(`${window.location.pathname}?${params.toString()}`);
+    } else {
+      localStorage.removeItem('firstLoadDone');
+    }
+  });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const addButton = document.getElementById('assignButton');
+    const checkboxes = document.querySelectorAll('.checkbox-row');
+
+    if (!localStorage.getItem('control_ad_user_selectedIds')) {
+      const selectedRows = JSON.parse('{{ selected_rows|safe }}');  
+      localStorage.setItem('control_ad_user_selectedIds', JSON.stringify(selectedRows));
+    }
+
+    let selectedIds = JSON.parse(localStorage.getItem('control_ad_user_selectedIds') || "[]");
+
+    checkboxes.forEach(checkbox => {
+      const checkboxId = parseInt(checkbox.getAttribute('data-id'));
+
+      if (selectedIds.includes(checkboxId)) {
+        checkbox.checked = true;
+      }
+
+      checkbox.addEventListener('change', function() {
+        selectedIds = JSON.parse(localStorage.getItem('control_ad_user_selectedIds') || "[]");
+        const checkboxId = parseInt(this.getAttribute('data-id'));
+
+        if (this.checked) {
+          if (!selectedIds.includes(checkboxId)) {
+            selectedIds.push(checkboxId);
+          }
+        } else {
+          selectedIds = selectedIds.filter(id => id !== checkboxId);
+        }
+
+        localStorage.setItem('control_ad_user_selectedIds', JSON.stringify(selectedIds));
+      });
+    });
+
+    addButton.addEventListener('click', function() {
+      selectedIds = JSON.parse(localStorage.getItem('control_ad_user_selectedIds') || "[]");
+
+      const newUrl = new URL('/tables/save-selected-rows/', window.location.origin);
+      newUrl.searchParams.append('model', '{{ table_name }}');
+      newUrl.searchParams.append('model_choice', 'CONTROL_AD_USER');
+      if (selectedIds.length > 0) {
+        newUrl.searchParams.append('ids', selectedIds.join(','));
+      }
+
+      // localStorage.removeItem('control_ad_user_selectedIds');
+
+      window.location.href = newUrl.toString();
+    });
+  });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const unmatchedButton = document.getElementById('unmatchedButton');
+    const checkboxes = document.querySelectorAll('.checkbox-row');
+
+    const selectedRows = JSON.parse('{{ selected_rows|safe }}');  
+    let selectedIds = [...selectedRows];
+
+    checkboxes.forEach(checkbox => {
+      const checkboxId = parseInt(checkbox.getAttribute('data-id'));
+
+      if (selectedIds.includes(checkboxId)) {
+        checkbox.checked = true;
+      }
+
+      checkbox.addEventListener('change', function() {
+        const checkboxId = parseInt(this.getAttribute('data-id'));
+
+        if (this.checked) {
+          if (!selectedIds.includes(checkboxId)) {
+            selectedIds.push(checkboxId);
+          }
+        } else {
+          selectedIds = selectedIds.filter(id => id !== checkboxId);
+        }
+      });
+    });
+
+    unmatchedButton.addEventListener('click', function() {
+      const newUrl = new URL('/tables/delete-unmatched/', window.location.origin);
+      newUrl.searchParams.append('model', '{{ table_name }}');
+      newUrl.searchParams.append('model_choice', 'CONTROL_AD_USER');
+      newUrl.searchParams.append('ipe_path', '{{ request.path }}');
+      if (selectedIds.length > 0) {
+        newUrl.searchParams.append('ids', selectedIds.join(','));
+      }
+
+      localStorage.removeItem('control_ad_user_selectedIds')
+      window.location.href = newUrl.toString();
+    });
+  });
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const methodSelect = document.getElementById("method");
+    const containsWrapper = document.getElementById("contains-wrapper");
+    const percentWrapper = document.getElementById("percent-wrapper");
+    const percentInput = document.getElementById("percent");
+    const splitWrapper = document.getElementById("split-wrapper");
+    const wordPosition = document.getElementById("word_position");
+    const prePostWrapper = document.getElementById("pre-post-wrapper");
+    const customWrapper = document.getElementById("custom-wrapper");
+    const emailWrapper = document.getElementById("email-wrapper");
+
+    function togglePercentInput() {
+      if (methodSelect.value === "contains") {
+        containsWrapper.style.display = "block";
+        percentWrapper.style.display = "none";
+        percentInput.setAttribute("required", "required");
+        splitWrapper.style.display = "none";
+        wordPosition.removeAttribute("required");
+        prePostWrapper.style.display = "none";
+        customWrapper.style.display = "none";
+        emailWrapper.style.display = "none";
+      } else if (methodSelect.value === "winkler_levenshtein") {
+        percentWrapper.style.display = "block";
+        percentInput.setAttribute("required", "required");
+        splitWrapper.style.display = "none";
+        wordPosition.removeAttribute("required");
+        prePostWrapper.style.display = "none";
+        customWrapper.style.display = "none";
+        emailWrapper.style.display = "none";
+        containsWrapper.style.display = "none";
+      } else if (methodSelect.value === "split") {
+        splitWrapper.style.display = "block";
+        wordPosition.setAttribute("required", "required");
+        percentWrapper.style.display = "none";
+        percentInput.removeAttribute("required");
+        prePostWrapper.style.display = "none";
+        customWrapper.style.display = "none";
+        emailWrapper.style.display = "none";
+        containsWrapper.style.display = "none";
+      } else if (methodSelect.value === "pre_post") {
+        splitWrapper.style.display = "none";
+        wordPosition.setAttribute("required", "required");
+        percentWrapper.style.display = "none";
+        percentInput.removeAttribute("required");
+        prePostWrapper.style.display = "block";
+        customWrapper.style.display = "none";
+        emailWrapper.style.display = "none";
+        containsWrapper.style.display = "none";
+      } else if (methodSelect.value === "custom") {
+        splitWrapper.style.display = "none";
+        wordPosition.setAttribute("required", "required");
+        percentWrapper.style.display = "none";
+        percentInput.removeAttribute("required");
+        prePostWrapper.style.display = "none";
+        customWrapper.style.display = "block";
+        emailWrapper.style.display = "none";
+        containsWrapper.style.display = "none";
+      } else if (methodSelect.value === "email_join") {
+        splitWrapper.style.display = "none";
+        wordPosition.setAttribute("required", "required");
+        percentWrapper.style.display = "none";
+        percentInput.removeAttribute("required");
+        prePostWrapper.style.display = "none";
+        customWrapper.style.display = "none";
+        emailWrapper.style.display = "block";
+        containsWrapper.style.display = "none";
+      } else {
+        percentWrapper.style.display = "none";
+        percentInput.removeAttribute("required");
+        splitWrapper.style.display = "none";
+        wordPosition.removeAttribute("required");
+        prePostWrapper.style.display = "none";
+        customWrapper.style.display = "none";
+        emailWrapper.style.display = "none";
+        containsWrapper.style.display = "none";
+      }
+    }
+    methodSelect.addEventListener("change", togglePercentInput);
+    togglePercentInput();
+  });
+</script>
+
+<script>
+  document.getElementById('py_function').addEventListener('change', function () {
+    const selectedOption = this.options[this.selectedIndex];
+    const funcId = selectedOption.getAttribute('data-id') || '';
+    const funcCode = selectedOption.getAttribute('data-func') || '';
+    const name = selectedOption.getAttribute('data-name') || '';
+    const description = selectedOption.getAttribute('data-description') || '';
+
+    const textarea = document.getElementById('selected_func');
+    const container = document.getElementById('func_display');
+
+    document.getElementById('edit_function_id').value = funcId;
+    document.getElementById('edit_py_function').value = name;
+    document.getElementById('edit_function').value = funcCode;
+    document.getElementById('edit_description').value = description;
+
+    if (funcCode) {
+      textarea.value = funcCode;
+      container.classList.remove('hidden');
+    } else {
+      textarea.value = '';
+      container.classList.add('hidden');
+    }
+  });
+</script>
+
+<script>
+  function copyToClipboard(textareaId) {
+    const textarea = document.getElementById(textareaId);
+    navigator.clipboard.writeText(textarea.value).then(() => {
+      alert(`Copied`);
+    }).catch(err => {
+      console.error('Failed to copy: ', err);
+    });
+  }
+
+  document.getElementById('copyPrompt').addEventListener('click', function () {
+    copyToClipboard('copy_py_prompt');
+  });
+
+  document.getElementById('copyFirstList').addEventListener('click', function () {
+    copyToClipboard('copy_first_list');
+  });
+
+  document.getElementById('copySecondList').addEventListener('click', function () {
+    copyToClipboard('copy_second_list');
+  });
+</script>
+
+<script>
+  document.querySelectorAll('.field-selector').forEach(container => {
+    const button = container.querySelector('.field-toggle');
+    const checkboxes = container.querySelectorAll('input.fields_to_pass');
+
+    const updateButtonText = () => {
+      const selectedFields = Array.from(checkboxes)
+        .filter(cb => cb.checked)
+        .map(cb => cb.parentElement.textContent.trim())
+        .join(', ');
+
+      button.textContent = selectedFields || 'Select fields';
+    };
+
+    checkboxes.forEach(cb => {
+      cb.addEventListener('change', updateButtonText);
+    });
+  });
+</script>
+
+
+<script>
+  const button = document.getElementById('fields_to_pass');
+  const checkboxes = document.querySelectorAll('input.fields_to_pass');
+
+  function updateButtonText() {
+    const selectedFields = Array.from(checkboxes)
+      .filter(checkbox => checkbox.checked)
+      .map(checkbox => checkbox.parentElement.textContent.trim())
+      .join(', ');
+
+    button.textContent = selectedFields || 'Select fields';
+  }
+
+  checkboxes.forEach(cb => {
+    cb.addEventListener('change', updateButtonText);
+  });
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const dynamicCheckbox = document.getElementById("dynamic_similarity");
+    const dynamicRowsSection = document.getElementById("dynamic_rows_section");
+
+    function toggleDynamicRows() {
+      if (dynamicCheckbox.checked) {
+        dynamicRowsSection.style.display = "block";
+      } else {
+        dynamicRowsSection.style.display = "none";
+      }
+    }
+
+    toggleDynamicRows();
+    dynamicCheckbox.addEventListener("change", toggleDynamicRows);
+  });
+</script>
+
+{% endblock extra_js %}

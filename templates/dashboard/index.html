@@ -1,0 +1,622 @@
+{% extends "layouts/base.html" %}
+{% load static replace_value %}
+
+{% block content %}
+
+<main>
+  <div class="px-4 pt-6">
+    <div class="flex justify-end gap-3">
+      <button 
+        type="button" 
+        data-modal-target="create-folder-modal" 
+        data-modal-toggle="create-folder-modal" 
+        class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Create File Manager</button>
+      {% comment %} <a href="{% url "join_models" %}" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Create Deltas</a>
+      <a href="{% url "model_builder" %}" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Create View</a> {% endcomment %}
+    </div>
+    
+    {% if favorites %}
+    <h6 class="text-lg font-bold dark:text-white mb-3">Favorite List</h6>
+    <div class="relative overflow-x-auto mb-5 p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 sm:p-6 dark:bg-gray-800">
+      <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+          <tr>
+            {% comment %} <th scope="col" class="px-6 py-3">
+              ID
+            </th> {% endcomment %}
+            <th scope="col" class="px-6 py-3">
+              DT Name
+            </th>
+            <th></th>
+            <th scope="col" class="px-6 py-3">
+              Created At
+            </th>
+            <th scope="col" class="px-6 py-3">
+              Action
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for favorite in favorites %}
+          <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+            <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              <a href="{% url "favorite_details" favorite.id %}?{% if favorite.order_by %}order_by={{ favorite.order_by }}{% endif %}{% if favorite.order_by and favorite.search %}&{% endif %}{% if favorite.search %}search={{ favorite.search }}{% endif %}">{{ favorite.name }}</a>
+            </td>
+            <td>
+              <span data-tooltip-target="description-tooltip" data-tooltip-placement="top" data-modal-target="description-{{favorite.id}}" data-modal-toggle="description-{{favorite.id}}">
+                {% if favorite.description %}
+                <span class="font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                  {{ favorite.description }}
+                </span>
+                {% else %}
+                  Add Description
+                {% endif %}
+              </span>
+              <div id="description-tooltip" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm opacity-0 tooltip dark:bg-gray-700">
+                Add Favorite description
+                <div class="tooltip-arrow" data-popper-arrow></div>
+              </div>
+            </td>
+            <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              {{ favorite.created_at }}
+            </td>
+            {% if request.user.is_authenticated %}
+              <td class="p-4 space-x-2 whitespace-nowrap">
+                <form action="{% url "remove_favorite" favorite.id %}" method="post">
+                  {% csrf_token %}
+
+                    <button type="submit" class="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white bg-red-600 rounded-lg hover:bg-red-800 focus:ring-4 focus:ring-red-300 dark:focus:ring-red-900">
+                      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                    </button>
+                </form>
+              </td>
+            {% endif %}
+          </tr>
+          {% include "includes/modals.html" with favorite=favorite %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    <div class="grid w-full grid-cols-1 gap-4 mt-4 xl:grid-cols-2 2xl:grid-cols-3 mb-5">
+      <div
+        class="items-center justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm sm:flex dark:border-gray-700 sm:p-6 dark:bg-gray-800">
+        <div class="w-full">
+          <h3 class="text-base font-normal text-gray-500 dark:text-gray-400">New users</h3>
+          <span class="last-value-left text-2xl font-bold leading-none text-gray-900 sm:text-3xl dark:text-white"></span>
+          <p class="flex items-center text-base font-normal text-gray-500 dark:text-gray-400">
+            <span class="flex items-center mr-1.5 text-sm last-two-diff-left"></span>
+            Since last month
+          </p>
+        </div>
+        <div class="w-full" id="new-devices-chart"></div>
+      </div>
+      <div
+        class="items-center justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm sm:flex dark:border-gray-700 sm:p-6 dark:bg-gray-800">
+        <div class="w-full">
+          <h3 class="text-base font-normal text-gray-500 dark:text-gray-400">Operating System</h3>
+          <span class="last-value-middle text-2xl font-bold leading-none text-gray-900 sm:text-3xl dark:text-white"></span>
+          <p class="flex items-center text-base font-normal text-gray-500 dark:text-gray-400">
+            <span class="flex items-center mr-1.5 text-sm last-two-diff-middle"></span>
+            Since last month
+          </p>
+        </div>
+        <div class="w-full" id="week-login-chart"></div>
+      </div>
+      <div
+        class="items-center justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm sm:flex dark:border-gray-700 sm:p-6 dark:bg-gray-800">
+        <div class="w-full">
+          <h3 class="text-base font-normal text-gray-500 dark:text-gray-400">New devices</h3>
+          <span class="last-value-right text-2xl font-bold leading-none text-gray-900 sm:text-3xl dark:text-white"></span>
+          <p class="flex items-center text-base font-normal text-gray-500 dark:text-gray-400">
+            <span class="flex items-center mr-1.5 text-sm last-two-diff-right"></span>
+            Since last month
+          </p>
+        </div>
+        <div id="traffic-channels-chart" class="w-full"></div>
+      </div>
+    </div>
+    <div class="flex gap-5 items-center justify-between mb-5">
+      <div class="w-full p-4 bg-white border border-gray-200 rounded-lg shadow-sm 2xl:col-span-2 dark:border-gray-700 sm:p-6 dark:bg-gray-800" id="device-line-chart"></div>
+      <div class="w-full p-4 bg-white border border-gray-200 rounded-lg shadow-sm 2xl:col-span-2 dark:border-gray-700 sm:p-6 dark:bg-gray-800" id="device-bar-chart"></div>
+    </div>
+
+  </div>
+</main>
+
+
+  <!-- Create folder modal -->
+  <div id="create-folder-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+      <div class="relative bg-white rounded-lg shadow-sm dark:bg-gray-700">
+        <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600 border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+            Create new folder
+          </h3>
+          <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-toggle="create-folder-modal">
+            <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+            </svg>
+            <span class="sr-only">Close modal</span>
+          </button>
+        </div>
+        <form class="p-4 md:p-5" action="{% url "create_folder" %}" method="post">
+          {% csrf_token %}
+          <div class="grid gap-4 mb-4 grid-cols-2">
+            <div class="col-span-2">
+              <label for="name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Name</label>
+              <input type="text" id="name" name="name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Folder name" required />
+            </div>
+            <div class="col-span-2">
+              <label for="id_group_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Sidebar Group</label>
+              <select name="group_name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" required id="id_sidebar_group">
+                <option value="">Choose a sidebar group</option>
+                {% for group in groups %}
+                  <option value="{{ group.name }}">{{ group.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-span-2">
+              <label for="id_sidebar" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Sidebar Section</label>
+              <select name="sidebar" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" required id="id_sidebar">
+                <option value="">Choose a sidebar section</option>
+                {% for sidebar in sidebars %}
+                  <option value="{{ sidebar.id }}">{{ sidebar.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="text-white inline-flex items-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+            Create
+          </button>
+        </form>
+      </div>
+    </div>
+  </div> 
+
+
+{% endblock content %}
+
+{% block extra_js %}
+
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+{% include "includes/charts.html" %}
+
+<script>
+  function getHomeDeviceBarChart(consolidatedBarData) {
+    const uniqueCategories = [...new Set(consolidatedBarData.map(cat => {
+      const timestamp = cat.date;
+      const date = new Date(timestamp * 1000);
+      const formattedDate = date.toISOString().split('T')[0];
+      return formattedDate;
+    }))];
+
+    const options = {
+      series: [],
+      chart: {
+        type: 'bar',
+        height: '140px',
+        fontFamily: 'Inter, sans-serif',
+        foreColor: '#4B5563',
+        toolbar: {
+          show: false
+        }
+      },
+      plotOptions: {
+        bar: {
+          columnWidth: '90%',
+          borderRadius: 3
+        }
+      },
+      tooltip: {
+        shared : false,
+        intersect: false,
+        style: {
+          fontSize: '14px',
+          fontFamily: 'Inter, sans-serif'
+        },
+      },
+      states: {
+        hover: {
+          filter: {
+            type: 'darken',
+            value: 1
+          }
+        }
+      },
+      stroke: {
+        show: true,
+        width: 5,
+        colors: ['transparent']
+      },
+      grid: {
+        show: false
+      },
+      dataLabels: {
+        enabled: false
+      },
+      legend: {
+        show: false
+      },
+      xaxis: {
+        type: 'category',
+        categories: uniqueCategories,
+        floating: false,
+        labels: {
+          show: false
+        },
+        axisBorder: {
+          show: false
+        },
+        axisTicks: {
+          show: false
+        },
+      },
+      yaxis: {
+        show: false
+      },
+      fill: {
+        opacity: 1
+      }
+    };
+
+    const groupedData = consolidatedBarData.reduce((result, data) => {
+      const deviceType = data.deviceType;
+
+      if (!result[deviceType]) {
+        result[deviceType] = {
+          name: deviceType,
+          data: []
+        };
+      }
+
+      result[deviceType].data.push(data.y);
+
+      return result;
+    }, {});
+
+    options.series = Object.values(groupedData);
+
+    return options;
+  }
+
+  function getHomeLoginPieChart(consolidatedBarData) {
+    let trafficChannelsChartColors = {};
+    if (document.documentElement.classList.contains('dark')) {
+      trafficChannelsChartColors = {
+        strokeColor: '#1f2937'
+      };
+    } else {
+      trafficChannelsChartColors = {
+        strokeColor: '#ffffff'
+      };
+    }
+
+    var options = {
+      series: [],
+      colors: ['#16BDCA', '#FDBA8C', '#1A56DB'],
+      chart: {
+        type: 'donut',
+        //height: 400,
+        fontFamily: 'Inter, sans-serif',
+        toolbar: {
+          show: false
+        },
+      },
+      labels: consolidatedBarData.map(data => data.x),
+      responsive: [{
+        breakpoint: 430,
+        options: {
+          chart: {
+            height: 300
+          }
+        }
+      }],
+      stroke: {
+        colors: [trafficChannelsChartColors.strokeColor]
+      },
+      states: {
+        hover: {
+          filter: {
+            type: 'darken',
+            value: 0.9
+          }
+        }
+      },
+      tooltip: {
+        shared: true,
+        followCursor: false,
+        fillSeriesColor: false,
+        inverseOrder: true,
+        style: {
+          fontSize: '14px',
+          fontFamily: 'Inter, sans-serif'
+        },
+        x: {
+          show: true,
+          formatter: function (_, { seriesIndex, w }) {
+            const label = w.config.labels[seriesIndex];
+            return label;
+          }
+        },
+        y: {
+          formatter: function (value) {
+            return value;
+          }
+        }
+      },
+      grid: {
+        show: false
+      },
+      dataLabels: {
+        enabled: false
+      },
+      legend: {
+        show: false
+      },
+    };
+
+    const groupedData = consolidatedBarData.reduce((result, data) => {
+      const date = data.x;
+      if (!result[date]) {
+        result[date] = data.y;
+      } else {
+        result[date] += data.y;
+      }
+      return result;
+    }, {});
+
+    options.series = Object.values(groupedData);
+
+    return options;
+
+  }; 
+
+  function getHomeDeviceLineChart(consolidatedBarData) {
+
+    const uniqueCategories = [...new Set(consolidatedBarData.map(cat => {
+      const timestamp = cat.date;
+      const date = new Date(timestamp * 1000);
+      const formattedDate = date.toISOString().split('T')[0];
+      return formattedDate;
+    }))];
+
+    var options = {
+      chart: {
+        type: "area",
+        stacked: false,
+        zoom: {
+          enabled: false,
+        },
+        toolbar: {
+          show: false
+        },
+      },
+      dataLabels: {
+        enabled: false
+      },
+      series: [],
+      grid: {
+        show: false
+      },
+      dataLabels: {
+        enabled: false
+      },
+      legend: {
+        show: false
+      },
+      xaxis: {
+        type: 'category',
+        categories: uniqueCategories,
+        floating: false,
+        labels: {
+          show: false
+        },
+        axisBorder: {
+          show: false
+        },
+        axisTicks: {
+          show: false
+        },
+      },
+      yaxis: {
+        show: false
+      },
+    };
+
+    const groupedData = consolidatedBarData.reduce((result, data) => {
+      const deviceType = data.deviceType;
+
+      if (!result[deviceType]) {
+        result[deviceType] = {
+          name: deviceType,
+          data: []
+        };
+      }
+
+      result[deviceType].data.push(data.y);
+
+      return result;
+    }, {});
+
+    options.series = Object.values(groupedData);
+
+    return options;
+  }
+
+  (async () => {
+    const response = await fetch('/get-device-data/');
+    const data = await response.json();
+
+    const deviceBarChart = new ApexCharts(document.getElementById('new-devices-chart'), getHomeDeviceBarChart(data.consolidatedChartData));
+    deviceBarChart.render();
+
+
+    let lastValues = document.querySelectorAll('.last-value-left');
+    let lastTwoDiffs = document.querySelectorAll('.last-two-diff-left');
+    
+    lastValues.forEach(value => {
+      value.innerHTML = data.consolidatedChartData[data.consolidatedChartData.length - 1].y;
+    });
+    
+    let secondLast = data.consolidatedChartData[data.consolidatedChartData.length - 2];
+    if (!secondLast) {
+      secondLast = data.consolidatedChartData[data.consolidatedChartData.length - 1];
+    }
+    
+    const diff = data.consolidatedChartData[data.consolidatedChartData.length - 1].y - secondLast.y;
+    
+    lastTwoDiffs.forEach(lastTwoDiff => {
+      let colorClass = diff > 0 ? "text-green-500 dark:text-green-400" : "text-red-600 dark:text-red-500";
+      lastTwoDiff.setAttribute("class", "flex items-center mr-1.5 text-sm " + colorClass);
+    
+      if (diff > 0) {
+        lastTwoDiff.innerHTML = `
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true">
+            <path clip-rule="evenodd" fill-rule="evenodd"
+              d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z">
+            </path>
+          </svg>
+          ${diff}%
+        `;
+      } else {
+        lastTwoDiff.innerHTML = `
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"
+            xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path clip-rule="evenodd" fill-rule="evenodd"
+              d="M10 3a.75.75 0 01.75.75v10.638l3.96-4.158a.75.75 0 111.08 1.04l-5.25 5.5a.75.75 0 01-1.08 0l-5.25-5.5a.75.75 0 111.08-1.04l3.96 4.158V3.75A.75.75 0 0110 3z">
+            </path>
+          </svg>
+          ${diff}%
+        `;
+      }
+    });
+    
+
+  })();
+
+  (async () => {
+    const response = await fetch('/charts/get-operating-supported-data/');
+    const data = await response.json();
+
+    const loginChart = new ApexCharts(document.getElementById('week-login-chart'), getHomeLoginPieChart(data.consolidatedChartData));
+    loginChart.render();
+
+    let lastValues = document.querySelectorAll('.last-value-middle');
+    let lastTwoDiffs = document.querySelectorAll('.last-two-diff-middle');
+    
+    lastValues.forEach(value => {
+      value.innerHTML = data.consolidatedChartData[data.consolidatedChartData.length - 1].y;
+    });
+    
+    let secondLast = data.consolidatedChartData[data.consolidatedChartData.length - 2];
+    if (!secondLast) {
+      secondLast = data.consolidatedChartData[data.consolidatedChartData.length - 1];
+    }
+    
+    const diff = data.consolidatedChartData[data.consolidatedChartData.length - 1].y - secondLast.y;
+    
+    lastTwoDiffs.forEach(lastTwoDiff => {
+      let colorClass = diff > 0 ? "text-green-500 dark:text-green-400" : "text-red-600 dark:text-red-500";
+      lastTwoDiff.setAttribute("class", "flex items-center mr-1.5 text-sm " + colorClass);
+    
+      if (diff > 0) {
+        lastTwoDiff.innerHTML = `
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true">
+            <path clip-rule="evenodd" fill-rule="evenodd"
+              d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z">
+            </path>
+          </svg>
+          ${diff}%
+        `;
+      } else {
+        lastTwoDiff.innerHTML = `
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"
+            xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path clip-rule="evenodd" fill-rule="evenodd"
+              d="M10 3a.75.75 0 01.75.75v10.638l3.96-4.158a.75.75 0 111.08 1.04l-5.25 5.5a.75.75 0 01-1.08 0l-5.25-5.5a.75.75 0 111.08-1.04l3.96 4.158V3.75A.75.75 0 0110 3z">
+            </path>
+          </svg>
+          ${diff}%
+        `;
+      }
+    });
+  })();
+
+  (async () => {
+    const response = await fetch('/charts/get-ad-devices-data/');
+    const data = await response.json();
+
+    const lineChart = new ApexCharts(document.getElementById('traffic-channels-chart'), getHomeDeviceLineChart(data.consolidatedChartData));
+    lineChart.render();
+
+    let lastValues = document.querySelectorAll('.last-value-right');
+    let lastTwoDiffs = document.querySelectorAll('.last-two-diff-right');
+    
+    lastValues.forEach(value => {
+      value.innerHTML = data.consolidatedChartData[data.consolidatedChartData.length - 1].y;
+    });
+    
+    let secondLast = data.consolidatedChartData[data.consolidatedChartData.length - 2];
+    if (!secondLast) {
+      secondLast = data.consolidatedChartData[data.consolidatedChartData.length - 1];
+    }
+    
+    const diff = data.consolidatedChartData[data.consolidatedChartData.length - 1].y - secondLast.y;
+    
+    lastTwoDiffs.forEach(lastTwoDiff => {
+      let colorClass = diff > 0 ? "text-green-500 dark:text-green-400" : "text-red-600 dark:text-red-500";
+      lastTwoDiff.setAttribute("class", "flex items-center mr-1.5 text-sm " + colorClass);
+    
+      if (diff > 0) {
+        lastTwoDiff.innerHTML = `
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true">
+            <path clip-rule="evenodd" fill-rule="evenodd"
+              d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z">
+            </path>
+          </svg>
+          ${diff}%
+        `;
+      } else {
+        lastTwoDiff.innerHTML = `
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"
+            xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path clip-rule="evenodd" fill-rule="evenodd"
+              d="M10 3a.75.75 0 01.75.75v10.638l3.96-4.158a.75.75 0 111.08 1.04l-5.25 5.5a.75.75 0 01-1.08 0l-5.25-5.5a.75.75 0 111.08-1.04l3.96 4.158V3.75A.75.75 0 0110 3z">
+            </path>
+          </svg>
+          ${diff}%
+        `;
+      }
+    });
+  })();
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var modalToggleButtons = document.querySelectorAll('[data-modal-toggle]');
+    
+    modalToggleButtons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        var modalId = button.getAttribute('data-modal-toggle');
+        var modal = document.getElementById(modalId);
+        
+        modal.classList.remove('hidden');
+        
+        var inputField = modal.querySelector('input[name="description"]');
+        if (inputField) {
+          inputField.focus();
+        }
+      });
+    });
+  });
+</script>
+
+
+
+{% endblock extra_js %}

@@ -1,0 +1,133 @@
+{% extends "layouts/base.html" %}
+{% load static %}
+
+{% block extrastyle %}
+
+    <link rel="stylesheet" href="{% static "dist/jquery.multi-select.css" %}">
+
+    <style>
+        .multi-select-button {
+            border-radius: 1rem;
+            border: none;
+        }
+    </style>
+
+{% endblock extrastyle %}
+
+{% block content %}
+
+<main class="m-4">
+    <div class="p-4 bg-white block border-b border-gray-200 lg:mt-1.5 dark:bg-gray-800 dark:border-gray-700 rounded-lg">
+        <div class="flex justify-between items-center mb-5">
+            <h4 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">View Builder</h4>
+        </div>
+        <form class="p-5 bg-white border border-gray-200 rounded-lg dark:bg-gray-800 dark:border-gray-700" method="post">
+            {% csrf_token %}
+            <div class="mb-5">
+                <label for="id_view_display_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">View Display Name</label>
+                <input type="text" name="fav_name" class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="View Display name" id="id_view_display_name">
+            </div>
+            <div class="mb-5">
+                <label for="id_parent_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Sidebar Section</label>
+                <select name="parent_name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" required id="id_parent_name">
+                    <option value="">Choose a sidebar section</option>
+                    {% for parent in parent_names %}
+                        <option value="{{ parent }}">{{ parent }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-5">
+                <label for="id_model_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Model Name</label>
+                <select name="model_name" {% if request.GET.model_name %} disabled {% endif %} class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" required id="id_model_name">
+                    <option value="">Choose a model</option>
+                    {% for app_name, models in model_names.items %}
+                        {% for model in models %}
+                        <option {% if request.GET.model_name == model %} selected {% endif %} value="{{app_name}}.{{ model }}">{{ model }}</option>
+                        {% endfor %}
+                    {% endfor %}
+                </select>
+            </div>
+            
+            {% if request.GET.model_name %}
+            <input type="hidden" name="model_name" value="tables.{{ request.GET.model_name }}">
+            {% endif %}
+
+            <div class="select_fields mb-5">
+                <label for="id_readonly_fields" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Read Only Fields</label>
+                <select name="readonly_fields" id="id_readonly_fields" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" multiple>
+                    
+                </select>
+            </div>
+            <div class="select_fields mb-5">
+                <label for="id_compulsory_fields" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Compulsory Fields</label>
+                <select name="compulsory_fields" id="id_compulsory_fields" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" multiple>
+                    
+                </select>
+            </div>
+            <div class="select_fields mb-5">
+                <label for="id_pre_columns" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Pre Columns</label>
+                <select name="pre_columns" id="id_pre_columns" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" multiple>
+                    
+                </select>
+            </div>
+            <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Build</button>
+        </form>
+    </div>
+</main>
+
+{% endblock content %}
+
+{% block extra_js %}
+
+<script src="{% static "dist/js/jquery-2.2.4.min.js" %}"></script>
+<script src="{% static "dist/js/jquery.multi-select.min.js" %}"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const modelSelect = document.getElementById('id_model_name');
+        const selectFields = document.querySelectorAll('.select_fields');
+
+        function updateFieldVisibility() {
+            const selectedModel = modelSelect.value;
+
+            if (selectedModel) {
+                selectFields.forEach(field => field.style.display = 'block');
+                fetchModelFields(selectedModel);
+            } else {
+                selectFields.forEach(field => field.style.display = 'none');
+            }
+        }
+
+        function fetchModelFields(modelName) {
+            fetch(`/view-builder/get-model-fields/?model_name=${modelName}`)
+                .then(response => response.json())
+                .then(data => {
+                    const readonlySelect = document.getElementById('id_readonly_fields');
+                    const compulsorySelect = document.getElementById('id_compulsory_fields');
+                    const preColumnSelect = document.getElementById('id_pre_columns');
+
+                    readonlySelect.innerHTML = '';
+                    compulsorySelect.innerHTML = '';
+                    preColumnSelect.innerHTML = '';
+
+                    data.fields.forEach(field => {
+                        readonlySelect.appendChild(new Option(field, field));
+                        compulsorySelect.appendChild(new Option(field, field));
+                        preColumnSelect.appendChild(new Option(field, field));
+                    });
+
+                    $('#id_readonly_fields').multiSelect({ 'noneText': 'Select read only fields' });
+                    $('#id_compulsory_fields').multiSelect({ 'noneText': 'Select compulsory fields' });
+                    $('#id_pre_columns').multiSelect({ 'noneText': 'Select pre columns' });
+                })
+                .catch(error => console.error('Error fetching model fields:', error));
+        }
+
+        updateFieldVisibility();
+        modelSelect.addEventListener('change', updateFieldVisibility);
+    });
+</script>
+
+
+
+{% endblock extra_js %}

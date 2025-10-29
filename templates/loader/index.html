@@ -1,0 +1,93 @@
+{% extends "layouts/base.html" %}
+{% load static %}
+
+
+{% block content %}
+
+<main class="m-4">
+    {% if messages %}
+        {% for message in messages %}
+        <div class="p-4 text-sm rounded-lg {{ message.tags }}" role="alert">
+            {{ message }}
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="p-4 bg-white block border-b border-gray-200 lg:mt-1.5 dark:bg-gray-800 dark:border-gray-700 rounded-lg">
+        <div class="flex justify-between items-center mb-5">
+            <h4 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">Model Builder</h4>
+            <a href="{% url "upload_csv" %}" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Add new model</a>
+        </div>
+        {% if audit_trails %}
+        <div class="relative overflow-x-auto">
+            <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-6 py-3">
+                            ID
+                        </th>
+                        <th scope="col" class="px-6 py-3">
+                            Model Name
+                        </th>
+                        <th scope="col" class="px-6 py-3">
+                            Created By
+                        </th>
+                        <th scope="col" class="px-6 py-3">
+                            Created At
+                        </th>
+                        <th scope="col" class="px-6 py-3">
+                            Deleted By
+                        </th>
+                        <th scope="col" class="px-6 py-3">
+                            Deleted At
+                        </th>
+                        <th scope="col" class="px-6 py-3">
+                            Action
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for audit in audit_trails %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                        <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                            {{ audit.pk }}
+                        </th>
+                        <td class="px-6 py-4">
+                            {{ audit.model_name }}
+                        </td>
+                        <td class="px-6 py-4">
+                            {{ audit.created_by }}
+                        </td>
+                        <td class="px-6 py-4">
+                            {{ audit.created_at }}
+                        </td>
+                        <td class="px-6 py-4">
+                            {{ audit.deleted_by }}
+                        </td>
+                        <td class="px-6 py-4">
+                            {{ audit.deleted_at }}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if not audit.deleted_at %}
+                                <a class="btn btn-danger btn-sm" href="{% url "delete_model" audit.model_name %}">
+                                    <svg class="w-6 h-6 text-red-800 dark:text-red-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z"/>
+                                    </svg>                                      
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="flex items-center justify-center w-full h-64 my-8">
+            <p class="text-gray-600">No models found</p>
+        </div>
+        {% endif %}
+    </div>
+</main>
+
+
+{% endblock content %}

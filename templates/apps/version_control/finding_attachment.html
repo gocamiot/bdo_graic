@@ -1,0 +1,389 @@
+{% extends "layouts/base.html" %}
+{% load static get_attribute file_extension replace_value %}
+
+{% block extrastyle %}
+
+<style>
+  .table-wrp  {
+    max-height: 75vh;
+    overflow-y: auto;
+    display:block;
+  }
+  thead{
+    position:sticky;
+    top:0
+  }
+</style>
+
+{% endblock extrastyle %}
+
+{% block content %}
+
+
+<main>
+  <div
+    class="p-4 bg-white block sm:flex items-center justify-between border-b border-gray-200 lg:mt-1.5 dark:bg-gray-800 dark:border-gray-700">
+    <div class="w-full mb-1">
+      <div class="mb-4">
+
+        <ul class="mb-7 flex flex-wrap text-sm font-medium text-center text-gray-500 border-b border-gray-200 dark:border-gray-700 dark:text-gray-400">
+          <li class="me-2">
+            <a href="{% url "finding" %}" class="inline-block p-4 rounded-t-lg hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-gray-300">Finding</a>
+        </li>
+          <li class="me-2">
+              <a href="{% url "finding_attachment" parent.finding.id %}" class="inline-block p-4 rounded-t-lg hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-gray-300">Finding Attachment</a>
+          </li>
+          <li class="me-2">
+              <a href="#" aria-current="page" class="inline-block p-4 text-blue-600 bg-gray-100 rounded-t-lg active dark:bg-gray-600 dark:text-white">Finding Attachment Version Control</a>
+          </li>
+        </ul>
+
+
+        <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">
+          Finding Attachment Version Control  
+        </h1>
+      </div>
+    </div>
+  </div>
+  <div class="flex flex-col">
+    <div style="transform:rotateX(180deg);" class="overflow-x-auto">
+      <div style="transform:rotateX(180deg);" class="inline-block min-w-full align-middle">
+        <div class="overflow-hidden table-wrp shadow">
+          <table class="min-w-full divide-y divide-gray-200 table-fixed dark:divide-gray-600">
+            <thead class="bg-gray-100 dark:bg-gray-700">
+              <tr>
+                <th scope="col" class="p-2">
+                  <div class="flex items-center">
+                    <input id="checkbox-all" aria-describedby="checkbox-1" type="checkbox"
+                      class="w-4 h-4 border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:focus:ring-primary-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                    <label for="checkbox-all" class="sr-only">checkbox</label>
+                  </div>
+                </th>
+
+                {% if request.user.is_authenticated %}
+                <th scope="col" class="p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                  Action
+                </th>
+                {% endif %}
+                
+                {% for field in db_field_names %}
+                  <th title="{{ field }}" id="th_{{ field }}" scope="col" class="p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                    <div class="group flex items-center gap-2 whitespace-nowrap h-6 w-48">
+                      <span class="block whitespace-nowrap overflow-hidden">{{ field }}</span>
+                      <div class="hidden group-hover:inline-block">
+                        <a class="order-link" data-order="{{ field }}" href="#">
+                          <img class="w-3" src="{% static "dist/images/up-arrow.png" %}" alt="">
+                        </a>
+                        <a class="order-link" data-order="-{{ field }}" href="#">
+                          <img class="w-3" src="{% static "dist/images/arrow-down.png" %}" alt="">
+                        </a>
+                      </div>
+                    </div>
+                  </th>
+                {% endfor %}
+
+                {% if request.user.is_authenticated %}
+                <th scope="col" class="p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                  Action
+                </th>
+                {% endif %}
+
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+
+              {% for software in softwares %}
+              <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+
+                <td class="w-4 p-2">
+                  <div class="flex items-center">
+                    <input id="checkbox-194556" aria-describedby="checkbox-1" type="checkbox"
+                      class="w-4 h-4 border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:focus:ring-primary-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                    <label for="checkbox-194556" class="sr-only">checkbox</label>
+                  </div>
+                </td>
+
+                <td class="p-4 space-x-2 whitespace-nowrap">
+                {% if software.document %}
+                  <button onclick="openFile('{{ software.document.url }}')" type="button" class="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white bg-green-500 rounded-lg hover:bg-green-500 focus:ring-4 focus:ring-green-500 dark:focus:ring-green-500">
+                    <svg class="w-4 h-4 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" stroke-width="2" d="M21 12c0 1.2-4 6-9 6s-9-4.8-9-6c0-1.2 4-6 9-6s9 4.8 9 6Z"/>
+                        <path stroke="currentColor" stroke-width="2" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+                      </svg>
+                    
+                  </button>
+                {% endif %}
+                </td>
+
+
+                {% for field_name in db_field_names %}
+                    {% if field_name == 'attachment' %}
+                      <td class="td_{{ field_name }} p-4 text-base font-medium text-gray-900 dark:text-white">
+                        <div class="flex items-center gap-1">
+                            <button 
+                                type="button" 
+                                data-modal-target="view-file-{{ software.id }}" 
+                                data-modal-toggle="view-file-{{ software.id }}"
+                                onclick="toggleRotation(this)"
+                                class="action-btn py-1 px-3 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
+                            >
+                                View
+                            </button>
+                            <a 
+                                href="{% url "download_attachment" software.id %}"
+                                class="action-btn py-1 px-3 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
+                            >
+                              <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 13V4M7 14H5a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-2m-1-5-4 5-4-5m9 8h.01"/>
+                              </svg>                        
+                            </a>
+                        </div>
+                      </td>
+                    {% else %}
+                        <td class="td_{{ field_name }} p-2 text-sm font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                            {{ software|getattribute:field_name }}
+                        </td>
+                    {% endif %}
+                {% endfor %}
+
+                <td class="p-4 space-x-2 whitespace-nowrap">
+                  {% if software.document %}
+                    <button onclick="openFile('{{ software.document.url }}')" type="button" class="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white bg-green-500 rounded-lg hover:bg-green-500 focus:ring-4 focus:ring-green-500 dark:focus:ring-green-500">
+                      <svg class="w-4 h-4 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <path stroke="currentColor" stroke-width="2" d="M21 12c0 1.2-4 6-9 6s-9-4.8-9-6c0-1.2 4-6 9-6s9 4.8 9 6Z"/>
+                          <path stroke="currentColor" stroke-width="2" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+                        </svg>
+                      
+                    </button>
+                  {% endif %}
+                  </td>
+              </tr>
+
+
+            <!-- View attachment -->
+            <div class="action-modal pb-5 fixed left-0 right-0 z-50 items-center justify-center hidden overflow-x-hidden overflow-y-auto top-4 md:inset-0 h-modal sm:h-full" id="view-file-{{ software.id }}">
+                <div class="relative w-full h-full max-w-4xl px-4 md:h-auto">
+                    <!-- Modal content -->
+                        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+                          <!-- Modal header -->
+                          <div class="flex items-start justify-between p-5 border-b rounded-t dark:border-gray-700">
+                            <div>
+                                <h3 class="text-xl font-semibold dark:text-white">
+                                    {{ software.attachment.name|basename }}
+                                </h3>
+                            </div>
+                            <div>
+                                <a href="{% url "download_attachment" software.id %}">
+                                    <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 13V4M7 14H5a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-2m-1-5-4 5-4-5m9 8h.01"/>
+                                    </svg>                                      
+                                </a>
+                            </div>
+                            <div>
+                                <button type="button" class="rotate-toggle-button text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-toggle="view-file-{{ software.id }}">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>  
+                                </button>
+                            </div>
+                        </div>
+                        <!-- Modal body -->
+                        <div class="p-6 space-y-6 overflow-y-auto">
+                          {% if software.attachment.name|file_extension in ".jpg, .jpeg, .png, .gif, .bmp, .webp, .svg, .tiff" %}
+                          <img class="w-full" style="max-height: 700px; object-fit: contain;" src="{{ software.attachment.url }}" alt="df">
+                      {% elif software.attachment.name|file_extension in ".mp4, .webm, .ogg" %}
+                          <video class="w-full" style="max-height: 700px;" controls>
+                              <source src="/media/{{ software.attachment }}" type="video/mp4">
+                              <source src="/media/{{ software.attachment }}" type="video/webm">
+                              <source src="/media/{{ software.attachment }}" type="video/ogg">
+                              Your browser does not support the video tag.
+                          </video>
+                      {% elif software.attachment.name|file_extension in ".pdf, .txt, .md, .json" %}
+                          <iframe src="/media/{{ software.attachment }}" width="100%" height="700px"></iframe>
+                      {% elif software.attachment.name|file_extension in ".csv" %}
+                          <pre class="bg-black text-white p-5 overflow-scroll max-h-96">{{ software.csv_text }}</pre>
+                      {% elif software.attachment.name|file_extension in ".docx, .pptx, .xlsx" %}
+                          <p>File format not supported for viewing directly. Please download the file to view.</p>
+                          <!-- <a href="/media/{{ software.attachment }}">Download File</a> -->
+                      {% elif software.attachment.name|file_extension in ".mp3, .wav, .flac, .m4a" %}
+                          <audio class="w-full" controls>
+                              <source src="/media/{{ software.attachment }}" type="audio/mp3">
+                              <source src="/media/{{ software.attachment }}" type="audio/wav">
+                              <source src="/media/{{ software.attachment }}" type="audio/flac">
+                              <source src="/media/{{ software.attachment }}" type="audio/m4a">
+                              Your browser does not support the audio element.
+                          </audio>
+                      {% else %}
+                          <p>File format not supported for viewing directly. Please download the file to view.</a></p>
+                      {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% endfor %}
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+  {% if softwares.has_other_pages %}
+  <nav aria-label="Page navigation example" class="mt-5 ml-4">
+    <ul class="inline-flex -space-x-px text-base h-10">
+      {% if softwares.has_previous %}
+        <li>
+          <a href="#" data-page="1" class="page-link flex items-center justify-center px-4 h-10 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">First</a>
+        </li>
+        <li>
+          <a href="#" data-page="{{ softwares.previous_page_number }}" class="page-link flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Prev</a>
+        </li>
+      {% endif %}
+
+      {% for n in softwares.paginator.page_range %}
+        {% if softwares.number == n %}
+          <li>
+            <span class="flex items-center justify-center px-4 h-10 text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white">{{ n }}<span class="sr-only"></span></span>
+          </li>
+        {% elif n > softwares.number|add:'-3' and n < softwares.number|add:'3' %}
+          <li>
+            <a class="page-link flex items-center justify-center px-4 h-10 leading-tight {% if softwares.number == i %}text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white{% else %}text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white{% endif %}" data-page="{{ n }}" href="#">
+              {{ n }}
+            </a>
+          </li>
+        {% endif %}
+      {% endfor %}
+      
+      {% if softwares.has_next %}
+        <li>
+          <a href="#" data-page="{{ softwares.next_page_number }}" class="page-link flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Next</a>
+        </li>
+        <li>
+          <a href="#" data-page="{{ softwares.paginator.num_pages }}" class="page-link flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Last</a>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endif %}
+
+
+  <!-- csv -->
+  <div id="export-csv" tabindex="-1" aria-hidden="true" class="py-5 fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-7xl max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <!-- Modal header -->
+            <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <div>
+                  <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    Export as CSV
+                  </h3>
+                </div>
+                <div class="text-xl font-semibold text-gray-900 dark:text-white">
+                  {% if request.GET.order_by or request.GET.search or request.GET.snapshot %}
+                    {% with order_by=request.GET.order_by search=request.GET.search snapshot=request.GET.snapshot %}
+                      <a href="{% url 'export_governance_and_risk_csv' %}?{% if order_by %}order_by={{ order_by }}{% endif %}{% if order_by and search %}&{% endif %}{% if search %}search={{ search }}{% endif %}{% if snapshot %}&snapshot={{ snapshot }}{% endif %}">
+                        <img class="w-8" src="{% static 'dist/images/export.png' %}" alt="">
+                      </a>
+                    {% endwith %}
+                  {% else %}
+                    {% comment %} <a href="{% url 'export_governance_and_risk_csv' %}"> {% endcomment %}
+                      <img class="w-8" src="{% static 'dist/images/export.png' %}" alt="">
+                    </a>
+                  {% endif %}
+                </div>
+                <div>
+                  <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="export-csv">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                  </button>
+                </div>
+            </div>
+            <!-- Modal body -->
+            <div class="p-6 space-y-6">
+              <div class="flex flex-col">
+                <div class="overflow-x-auto">
+                  <div class="inline-block min-w-full align-middle">
+                    <div class="overflow-hidden table-wrp shadow">
+                      {% include "includes/items-table.html" with items=softwares %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+    </div>
+  </div>
+
+
+</main>
+
+{% endblock content %}
+
+
+
+
+{% block extra_js %}
+
+<script>
+  function openFile(fileUrl) {
+    // Create a temporary link element
+    var link = document.createElement('a');
+    link.href = fileUrl;
+    link.target = '_blank';
+    link.download = fileUrl.split('/').pop(); // Extract the filename from the URL
+
+    // Trigger a click event on the link
+    link.click();
+  }
+</script>
+
+<script>
+    function toggleRotation() {
+      document.querySelectorAll('.overflow-x-auto[style], .inline-block[style]').forEach(function(element) {
+        if (element.style.transform === '') {
+          element.style.transform = 'rotateX(180deg)';
+        } else {
+          element.style.transform = '';
+        }
+      });
+    }
+  
+    function handleClick(event) {
+      const clickedElement = event.target;
+      const isActionButton = clickedElement.closest('.action-btn');
+      const isInsideModal = clickedElement.closest('.action-modal');
+  
+      if (isInsideModal) {
+        return;
+      }
+  
+      if (!isActionButton) {
+        document.querySelectorAll('.overflow-x-auto[style], .inline-block[style]').forEach(function(element) {
+          element.style.transform = 'rotateX(180deg)';
+        })
+      } else {
+        document.querySelectorAll('.overflow-x-auto[style], .inline-block[style]').forEach(function(element) {
+          element.style.transform = '';
+        })
+      }
+  
+      const updateButtons = document.querySelectorAll('.rotate-toggle-button');
+  
+      updateButtons.forEach(function(button) {
+        button.addEventListener('click', function() {
+          document.querySelectorAll('.overflow-x-auto[style], .inline-block[style]').forEach(function(element) {
+            element.style.transform = 'rotateX(180deg)';
+          })
+        });
+      });
+  
+    }
+    document.addEventListener('click', handleClick);
+</script>
+
+{% endblock extra_js %}

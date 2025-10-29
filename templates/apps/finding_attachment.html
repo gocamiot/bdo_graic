@@ -1,0 +1,1184 @@
+{% extends "layouts/base.html" %}
+{% load static get_attribute file_extension replace_value %}
+
+{% block extrastyle %}
+
+<style>
+  .table-wrp  {
+    max-height: 75vh;
+    overflow-y: auto;
+    display:block;
+  }
+  thead{
+    position:sticky;
+    top:0
+  }
+</style>
+
+{% endblock extrastyle %}
+
+{% block content %}
+
+
+<main>
+  <div
+    class="p-4 bg-white block sm:flex items-center justify-between border-b border-gray-200 lg:mt-1.5 dark:bg-gray-800 dark:border-gray-700">
+    <div class="w-full mb-1">
+      <div class="mb-4">
+
+        <ul class="mb-7 flex flex-wrap text-sm font-medium text-center text-gray-500 border-b border-gray-200 dark:border-gray-700 dark:text-gray-400">
+          <li class="me-2">
+              <a href="{% url "finding" %}" class="inline-block p-4 rounded-t-lg hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-gray-300">Actions</a>
+          </li>
+          <li class="me-2">
+              <a href="#" aria-current="page" class="inline-block p-4 text-blue-600 bg-gray-100 rounded-t-lg active dark:bg-gray-600 dark:text-white">Action Attachment</a>
+          </li>
+        </ul>
+
+        <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">
+          Action Attachment
+          <span class="inline-flex items-center justify-center w-1/2 px-2 py-2.5 text-sm font-medium text-center text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700">
+            {{ softwares.paginator.count }} out of {{ total_items }}
+          </span>   
+        </h1>
+      </div>
+      <div class="items-center justify-between block sm:flex dark:divide-gray-700">
+        <div class="flex items-center mb-4 sm:mb-0">
+          <form class="sm:pr-3 flex itmes-center gap-2" id="search-form" method="GET">
+            <div>
+              <label for="finding-attachment-search" class="sr-only">Search</label>
+              <div class="relative w-48 sm:w-64 xl:w-96">
+                <input type="text" name="search" value="{{ request.GET.search }}" id="finding-attachment-search"
+                  class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+                  placeholder="Global search">
+              </div>
+            </div>
+            <div class="flex gap-2"> 
+              <button type="submit" class="inline-flex items-center justify-center w-1/2 px-3 py-2.5 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+                <svg class="w-5 h-5 text-white dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                </svg>
+              </button>
+              <button id="removeSearchButton"  type="button" class="focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-3 py-2.5 mr-2  dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900">
+                <svg class="w-5 h-5 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 17.94 6M18 18 6.06 6"/>
+                </svg>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="flex items-center ml-auto space-x-2 sm:space-x-3">
+          <form action="" method="post">
+            <button id="dropdownCheckboxButton" data-dropdown-toggle="dropdownDefaultCheckbox" class="inline-flex items-center justify-center w-1/2 px-2 py-2.5 text-sm font-medium text-center text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700" type="button">
+              Hide / Show Column
+              <svg class="w-2.5 h-2.5 ml-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+              </svg>
+            </button>
+            <!-- Dropdown menu -->
+            <div id="dropdownDefaultCheckbox" class="w-max z-10 hidden w-48 bg-white divide-y divide-gray-100 rounded-lg shadow dark:bg-gray-700 dark:divide-gray-600">
+              <ul class="p-3 space-y-3 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="dropdownCheckboxButton">
+                {% for field_name in field_names %}
+                  {% if not field_name.key in pre_column %}
+                  <li>
+                    <div class="flex items-center">
+                      <input id="checkbox-item-{{ field_name.id }}" data-target="{{ field_name.key }}" {% if field_name.value %} checked {% endif %} type="checkbox" value="{{ field_name.key }}" name="key" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                      <label for="checkbox-item-{{ field_name.id }}" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">{{ field_name.key }}</label>
+                    </div>
+                  </li>
+                  {% else %}
+                  <li class="hidden">
+                    <div class="flex items-center">
+                      <input id="checkbox-item-{{ field_name.id }}" data-target="{{ field_name.key }}" disabled checked type="checkbox" value="{{ field_name.key }}" name="key" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                      <label for="checkbox-item-{{ field_name.id }}" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">{{ field_name.key }}</label>
+                    </div>
+                  </li>
+                  {% endif %}
+                {% endfor %}
+              </ul>
+            </div>
+          </form>
+        </div>
+
+        <div class="flex items-center ml-auto space-x-2 sm:space-x-3">
+          {% comment %} <form action="{% url "add_to_favorite" model_name='FindingAttachment' model_choice='FINDING_ATTACHMENT' %}" method="post">
+            {% csrf_token %}
+
+            <input type="hidden" name="search_fields" value="{{ request.GET.search }}" >
+            <input type="hidden" name="order_by" value="{{ request.GET.order_by }}" >
+            <input type="hidden" name="fav_name" value="{{ fav_name }}">
+            <input type="hidden" name="snapshot" value="{{ request.GET.snapshot }}" >
+
+            <!-- <button type="submit" data-tooltip-target="favorite" data-tooltip-placement="bottom" class="inline-flex items-center justify-center w-1/2 px-2 py-2.5 text-sm font-medium text-center text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700">
+              <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 21 19">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4C5.5-1.5-1.5 5.5 4 11l7 7 7-7c5.458-5.458-1.542-12.458-7-7Z"/>
+              </svg>
+            </button> -->
+          </form>
+          <div id="favorite" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm opacity-0 tooltip dark:bg-gray-700">
+            Add to Favorite
+            <div class="tooltip-arrow" data-popper-arrow></div>
+          </div>
+          <form method="post" class="inline-flex items-center justify-center w-1/2 px-2 py-2 text-sm font-medium text-center text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700"> {% endcomment %}
+            {% csrf_token %}
+
+            <select onchange="getComboA(this)" id="items" class="bg-transparent dark:text-white py-0 border-transparent focus:border-transparent focus:ring-0">
+              <option class="dark:bg-gray-800" {% if items == 25 %} selected {% endif %} value="25">25 Items</option>
+              <option class="dark:bg-gray-800" {% if items == 50 %} selected {% endif %} value="50">50 Items</option>
+              <option class="dark:bg-gray-800" {% if items == 100 %} selected {% endif %} value="100">100 Items</option>
+            </select>
+            
+          </form>
+          {% if request.user.is_authenticated %}
+          <button type="button" data-modal-toggle="document-upload" class="inline-flex items-center justify-center w-1/2 px-3 py-2 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+              <svg class="w-5 h-5 mr-2 -ml-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path></svg>
+              Add
+          </button>
+          {% endif %}
+          <div class="flex">
+            <a data-modal-target="export-csv" data-modal-toggle="export-csv">
+              <img class="w-10" src="{% static "dist/images/csv.png" %}" alt="">
+            </a>
+          </div>
+        </div> 
+      
+      </div>
+
+      <div class="items-center mt-4 justify-between block flex">
+        <div class="flex items-center sm:mb-0">
+
+          <form action="{% url "create_finding_attachment_filter" %}" class="sm:pr-3 w-3/12" method="post">
+            {% csrf_token %}
+            <div class="flex items-center gap-5">
+              <div>
+                <h1 style="white-space: nowrap;" class="block mb-2 dark:text-white">Filters</h1>
+              </div>
+              <div>
+                <button id="addButton" type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Add</button>
+              </div>
+            </div>
+
+            <div id="inputContainer">
+              {% if filter_instance %}
+                {% for filter_data in filter_instance %}
+                <div class="input-container flex align-center gap-5 mb-5">
+                  <div class="flex">
+                    <select name="key" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                      {% for field in db_field_names %}
+                      {% if field not in pre_column %}
+                        <option {% if filter_data.key == field %}selected{% endif %} value="{{ field }}">{{ field }}</option>
+                      {% endif %}
+                      {% endfor %}
+                    </select>
+                    <input name="value" value="{{ filter_data.value }}" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-r-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" type="text" placeholder="Enter value">
+                  </div>
+                  <a href="{% url "delete_finding_attachment_filter" filter_data.id %}" class="remove-button focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2  dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900">X</a>
+                </div>
+                {% endfor %}
+              {% endif %}
+            </div>
+
+            <button id="submitButton" type="submit" {% if not filter_instance %} style="display: none;" {% endif %} class="bg-green-500 text-white px-4 py-2 rounded-md mt-4">Submit</button>
+          </form>
+
+        </div>
+
+        <div></div>
+        
+      </div>
+    </div>
+  </div>
+  <div class="flex flex-col">
+    <div style="transform:rotateX(180deg);" class="overflow-x-auto">
+      <div style="transform:rotateX(180deg);" class="inline-block min-w-full align-middle">
+        <div class="overflow-hidden table-wrp shadow">
+          <table class="min-w-full divide-y divide-gray-200 table-fixed dark:divide-gray-600">
+            <thead class="bg-gray-100 dark:bg-gray-700">
+              <tr>
+                <th scope="col" class="p-2">
+                  <div class="flex items-center">
+                    <input id="checkbox-all" aria-describedby="checkbox-1" type="checkbox"
+                      class="w-4 h-4 border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:focus:ring-primary-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                    <label for="checkbox-all" class="sr-only">checkbox</label>
+                  </div>
+                </th>
+
+                {% if request.user.is_authenticated %}
+                <th scope="col" class="p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                  Action
+                </th>
+                {% endif %}
+
+                {% for field in db_field_names %}
+                  <th id="th_{{ field }}" scope="col" class="p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                    <div class="group flex items-center gap-2 whitespace-nowrap h-6 w-48">
+                      <span class="block">{{ field }}</span>
+                      <div class="hidden group-hover:inline-block">
+                        <a class="order-link" data-order="{{ field }}" href="#">
+                          <img class="w-3" src="{% static "dist/images/up-arrow.png" %}" alt="">
+                        </a>
+                        <a class="order-link" data-order="-{{ field }}" href="#">
+                          <img class="w-3" src="{% static "dist/images/arrow-down.png" %}" alt="">
+                        </a>
+                      </div>
+                    </div>
+                  </th>
+                {% endfor %}
+
+                {% if request.user.is_authenticated %}
+                <th scope="col" class="p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                  Action
+                </th>
+                {% endif %}
+
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+
+              {% for software in softwares %}
+              <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                <td class="w-4 p-2">
+                  <div class="flex items-center">
+                    <input id="checkbox-194556" aria-describedby="checkbox-1" type="checkbox"
+                      class="w-4 h-4 border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:focus:ring-primary-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                    <label for="checkbox-194556" class="sr-only">checkbox</label>
+                  </div>
+                </td>
+
+                {% if request.user.is_authenticated %}
+                <td class="p-4 whitespace-nowrap">
+                  <button onclick="toggleRotation(this)" type="button" data-modal-toggle="drawer-update-product-default{{software.id}}" data-id="{{ software.id }}" class="edit-attachment action-btn inline-flex items-center px-1 py-2 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+                      <svg class="action-btn w-4 h-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"></path></svg>
+                  </button>
+
+                  <button onclick="toggleRotation(this)" type="button" data-modal-toggle="drawer-delete-product-default{{software.id}}" class="action-btn inline-flex items-center px-1 py-2 text-sm font-medium text-center text-white bg-red-600 rounded-lg hover:bg-red-800 focus:ring-4 focus:ring-red-300 dark:focus:ring-red-900">
+                      <svg class="action-btn w-4 h-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                  </button>
+
+                  {% if software.document %}
+                  <button onclick="openFile('{{ software.document.url }}')" type="button" class="inline-flex items-center px-1 py-2 text-sm font-medium text-center text-white bg-green-500 rounded-lg hover:bg-green-500 focus:ring-4 focus:ring-green-500 dark:focus:ring-green-500">
+                    <svg class="w-4 h-4 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" stroke-width="2" d="M21 12c0 1.2-4 6-9 6s-9-4.8-9-6c0-1.2 4-6 9-6s9 4.8 9 6Z"/>
+                        <path stroke="currentColor" stroke-width="2" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+                      </svg>
+                  </button>
+                  {% endif %}
+
+                  {% if software.is_parent %}
+                  <a href="{% url "finding_attachments_version_control_dt" software.id %}" class="inline-flex items-center px-1 py-2 text-sm font-medium text-center text-white bg-green-500 rounded-lg hover:bg-green-500 focus:ring-4 focus:ring-green-500 dark:focus:ring-green-500">
+                    <span class="w-4 h-4 block">V</span>
+                  </a>
+                  {% endif %}
+
+                  <!-- <a href="{% url "vendor_management_document_duplicate_row" software.id %}" class="inline-flex items-center px-1 py-2 text-sm font-medium text-center text-white bg-green-500 rounded-lg hover:bg-green-500 focus:ring-4 focus:ring-green-500 dark:focus:ring-green-500">
+                    <span class="w-4 h-4 block">C</span>
+                  </a> -->
+                  
+                </td>
+                {% endif %}
+
+                {% for field_name in db_field_names %}
+                    {% if field_name == 'attachment' %}
+                    <td class="td_{{ field_name }} p-4 text-base font-medium text-gray-900 dark:text-white">
+                      <div class="flex items-center gap-1">
+                          <button 
+                              type="button" 
+                              data-modal-target="view-file-{{ software.id }}" 
+                              data-modal-toggle="view-file-{{ software.id }}"
+                              onclick="toggleRotation(this)"
+                              class="action-btn py-1 px-3 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
+                          >
+                              View
+                          </button>
+                          <a 
+                              href="{% url "download_attachment" software.id %}"
+                              class="action-btn py-1 px-3 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
+                          >
+                            <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 13V4M7 14H5a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-2m-1-5-4 5-4-5m9 8h.01"/>
+                            </svg>                        
+                          </a>
+                      </div>
+                    </td>
+                    {% else %}
+                    <td class="td_{{ field_name }} p-2 text-sm font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                        {{ software|getattribute:field_name }}
+                    </td>
+                    {% endif %}
+                {% endfor %}
+
+                {% if request.user.is_authenticated %}
+                <td class="p-4 whitespace-nowrap">
+                  <button onclick="toggleRotation(this)" type="button" data-modal-toggle="drawer-update-product-default{{software.id}}" data-id="{{ software.id }}" class="action-btn inline-flex items-center px-1 py-2 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+                      <svg class="action-btn w-4 h-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"></path></svg>
+                  </button>
+                  <button onclick="toggleRotation(this)" type="button" data-modal-toggle="drawer-delete-product-default{{software.id}}" class="action-btn inline-flex items-center px-1 py-2 text-sm font-medium text-center text-white bg-red-600 rounded-lg hover:bg-red-800 focus:ring-4 focus:ring-red-300 dark:focus:ring-red-900">
+                      <svg class="action-btn w-4 h-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                  </button>
+
+                  {% if software.document %}
+                  <button onclick="openFile('{{ software.document.url }}')" type="button" class="inline-flex items-center px-1 py-2 text-sm font-medium text-center text-white bg-green-500 rounded-lg hover:bg-green-500 focus:ring-4 focus:ring-green-500 dark:focus:ring-green-500">
+                    <svg class="w-4 h-4 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" stroke-width="2" d="M21 12c0 1.2-4 6-9 6s-9-4.8-9-6c0-1.2 4-6 9-6s9 4.8 9 6Z"/>
+                        <path stroke="currentColor" stroke-width="2" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+                      </svg>
+                  </button>
+                  {% endif %}
+
+                  {% if software.is_parent %}
+                  <a href="{% url "finding_attachments_version_control_dt" software.id %}" class="inline-flex items-center px-1 py-2 text-sm font-medium text-center text-white bg-green-500 rounded-lg hover:bg-green-500 focus:ring-4 focus:ring-green-500 dark:focus:ring-green-500">
+                    <span class="w-4 h-4 block">V</span>
+                  </a>
+                  {% endif %}
+
+                  <!-- <a href="{% url "vendor_management_document_duplicate_row" software.id %}" class="inline-flex items-center px-1 py-2 text-sm font-medium text-center text-white bg-green-500 rounded-lg hover:bg-green-500 focus:ring-4 focus:ring-green-500 dark:focus:ring-green-500">
+                    <span class="w-4 h-4 block">C</span>
+                  </a> -->
+                  
+                </td>
+                {% endif %}
+
+              </tr>
+
+
+            <!-- View attachment -->
+            <div class="action-modal pb-5 fixed left-0 right-0 z-50 items-center justify-center hidden overflow-x-hidden overflow-y-auto top-4 md:inset-0 h-modal sm:h-full" id="view-file-{{ software.id }}">
+                <div class="relative w-full h-full max-w-4xl px-4 md:h-auto">
+                    <!-- Modal content -->
+                    <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+                        <!-- Modal header -->
+                        <div class="flex items-start justify-between p-5 border-b rounded-t dark:border-gray-700">
+                            <div>
+                                <h3 class="text-xl font-semibold dark:text-white">
+                                    {{ software.attachment.name|basename }}
+                                </h3>
+                            </div>
+                            <div>
+                                <a href="{% url "download_attachment" software.id %}">
+                                    <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 13V4M7 14H5a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-2m-1-5-4 5-4-5m9 8h.01"/>
+                                    </svg>                                      
+                                </a>
+                            </div>
+                            <div>
+                                <button type="button" class="rotate-toggle-button text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-toggle="view-file-{{ software.id }}">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>  
+                                </button>
+                            </div>
+                        </div>
+                        <!-- Modal body -->
+                        <div class="p-6 space-y-6 overflow-y-auto">
+                          {% if software.attachment.name|file_extension in ".jpg, .jpeg, .png, .gif, .bmp, .webp, .svg, .tiff" %}
+                          <img class="w-full" style="max-height: 700px; object-fit: contain;" src="{{ software.attachment.url }}" alt="df">
+                      {% elif software.attachment.name|file_extension in ".mp4, .webm, .ogg" %}
+                          <video class="w-full" style="max-height: 700px;" controls>
+                              <source src="/media/{{ software.attachment }}" type="video/mp4">
+                              <source src="/media/{{ software.attachment }}" type="video/webm">
+                              <source src="/media/{{ software.attachment }}" type="video/ogg">
+                              Your browser does not support the video tag.
+                          </video>
+                      {% elif software.attachment.name|file_extension in ".pdf, .txt, .md, .json" %}
+                          <iframe src="/media/{{ software.attachment }}" width="100%" height="700px"></iframe>
+                      {% elif software.attachment.name|file_extension in ".csv" %}
+                          <pre class="bg-black text-white p-5 overflow-scroll max-h-96">{{ software.csv_text }}</pre>
+                      {% elif software.attachment.name|file_extension in ".docx, .pptx, .xlsx" %}
+                          <p>File format not supported for viewing directly. Please download the file to view.</p>
+                          <a href="/media/{{ software.attachment }}">Download File</a>
+                      {% elif software.attachment.name|file_extension in ".mp3, .wav, .flac, .m4a" %}
+                          <audio class="w-full" controls>
+                              <source src="/media/{{ software.attachment }}" type="audio/mp3">
+                              <source src="/media/{{ software.attachment }}" type="audio/wav">
+                              <source src="/media/{{ software.attachment }}" type="audio/flac">
+                              <source src="/media/{{ software.attachment }}" type="audio/m4a">
+                              Your browser does not support the audio element.
+                          </audio>
+                      {% else %}
+                          <p>File format not supported for viewing directly. Please download the file to view.</a></p>
+                      {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delete Product Drawer -->
+            <div class="action-modal fixed left-0 right-0 z-50 items-center justify-center hidden overflow-x-hidden overflow-y-auto top-4 md:inset-0 h-modal sm:h-full" id="drawer-delete-product-default{{software.id}}">
+                <div class="relative w-full h-full max-w-md px-4 md:h-auto">
+                    <!-- Modal content -->
+                    <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+                        <!-- Modal header -->
+                        <div class="flex justify-end p-2">
+                            <button type="button" class="rotate-toggle-button text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-toggle="drawer-delete-product-default{{software.id}}">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>  
+                            </button>
+                        </div>
+                        <!-- Modal body -->
+                        <div class="p-6 pt-0 text-center">
+                            <svg class="w-16 h-16 mx-auto text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <h3 class="mt-5 mb-6 text-lg text-gray-500 dark:text-gray-400">Are you sure you want to delete this item?</h3>
+                            <a href="{% url "delete_finding_attachment" software.id %}" class="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-base inline-flex items-center px-3 py-2.5 text-center mr-2 dark:focus:ring-red-800">
+                                Yes, I'm sure
+                            </a>
+                            <a href="#" class="text-gray-900 bg-white hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 border border-gray-200 font-medium inline-flex items-center rounded-lg text-base px-3 py-2.5 text-center dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700" data-modal-toggle="drawer-delete-product-default{{software.id}}">
+                                No, cancel
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Product Drawer -->
+            <div class="action-modal pb-5 fixed left-0 right-0 z-50 items-center justify-center hidden overflow-x-hidden overflow-y-auto top-4 md:inset-0 h-modal sm:h-full" id="drawer-update-product-default{{software.id}}">
+                <div class="relative w-full h-full max-w-4xl px-4 md:h-auto">
+                    <!-- Modal content -->
+                    <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+                    <!-- Modal header -->
+                    <div class="flex items-start justify-between p-5 border-b rounded-t dark:border-gray-700">
+                          <h3 class="text-xl font-semibold dark:text-white">
+                              Edit Attachment
+                          </h3>
+                          <button type="button" class="rotate-toggle-button text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-toggle="drawer-update-product-default{{software.id}}">
+                              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>  
+                          </button>
+                      </div>
+                      <!-- Modal body -->
+                      <div style="height: 70vh;" class="p-6 overflow-y-auto">
+                          <form method="post" action="{% url "update_finding_attachment" software.id %}" enctype="multipart/form-data" >
+                            {% csrf_token %}
+                            
+                            <div class="grid gap-4 mb-4 grid-cols-2">
+                                <div class="col-span-2">
+                                    <label for="attachment_type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Attachment Type</label>
+                                    <select {% if 'attachment_type' in read_only_fields %} readonly disabled {% elif 'attachment_type' in compulsory_fields %} required {% endif %} id="attachment_type" name="attachment_type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
+                                        <option disabled selected value="">Select type</option>
+                                        {% for value, label in attachment_type %}
+                                        <option {% if software.attachment_type == value %} selected {% endif %} value="{{ value }}">{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-span-2">
+                                    <label for="attachment_status" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Attachment Status</label>
+                                    <select {% if 'attachment_status' in read_only_fields %} readonly disabled {% elif 'attachment_status' in compulsory_fields %} required {% endif %} id="attachment_status" name="attachment_status" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
+                                        <option selected value="">Select status</option>
+                                        {% for value, label in attachment_status %}
+                                        <option {% if software.attachment_status == value %} selected {% endif %} value="{{ value }}">{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-span-2">
+                                    <label for="version" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Version</label>
+                                    <textarea {% if 'version' in read_only_fields %} readonly disabled {% elif 'version' in compulsory_fields %} required {% endif %} id="version" name="version" rows="1" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Version">{{ software.version }}</textarea>                    
+                                </div>
+                                <div class="col-span-2">
+                                    <label for="description" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+                                    <textarea {% if 'description' in read_only_fields %} readonly disabled {% elif 'description' in compulsory_fields %} required {% endif %} id="description" name="description" rows="4" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Description">{{ software.description }}</textarea>                    
+                                </div>
+
+                                <input type="hidden" id="existingFileUrl-{{ software.id }}" value="{% if software.attachment %}{{ software.attachment.url }}{% else %}{% endif %}">
+                                <input type="hidden" id="existingFileName-{{ software.id }}" value="{% if software.attachment %}{{ software.attachment.name }}{% else %}{% endif %}">
+                                <div class="col-span-2">
+                                    <div class="flex items-center justify-center w-full">
+                                        <label for="dropzone-file-{{ software.id }}" class="flex flex-col items-center justify-center w-full h-52 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
+                                            <div class="flex flex-col items-center justify-center pt-5 pb-6" >
+                                                <svg class="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                                                </svg>
+                                                <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold">Click to upload</span> or drag and drop</p>
+                                                <p class="text-xs text-gray-500 dark:text-gray-400">SVG, PNG, JPG or GIF</p>
+                                            </div>
+                                            <input id="dropzone-file-{{ software.id }}" type="file" name="attachment" class="hidden"/>
+                                        </label>
+                                    </div>
+                                    <div id="previewContainer-{{ software.id }}" class=""></div>
+                                </div>
+                            </div>
+                            
+                          </div>
+                          <!-- Modal footer -->
+                          <div class="items-center p-6 border-t border-gray-200 rounded-b dark:border-gray-700">
+                              <button class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800" type="submit">Update item</button>
+                          </div>
+                      </form>
+                  </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  {% if softwares.has_other_pages %}
+  <nav aria-label="Page navigation example" class="mt-5 ml-4">
+    <ul class="inline-flex -space-x-px text-base h-10">
+      {% if softwares.has_previous %}
+        <li>
+          <a href="#" data-page="1" class="page-link flex items-center justify-center px-4 h-10 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">First</a>
+        </li>
+        <li>
+          <a href="#" data-page="{{ softwares.previous_page_number }}" class="page-link flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Prev</a>
+        </li>
+      {% endif %}
+
+      {% for n in softwares.paginator.page_range %}
+        {% if softwares.number == n %}
+          <li>
+            <span class="flex items-center justify-center px-4 h-10 text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white">{{ n }}<span class="sr-only"></span></span>
+          </li>
+        {% elif n > softwares.number|add:'-3' and n < softwares.number|add:'3' %}
+          <li>
+            <a class="page-link flex items-center justify-center px-4 h-10 leading-tight {% if softwares.number == i %}text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white{% else %}text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white{% endif %}" data-page="{{ n }}" href="#">
+              {{ n }}
+            </a>
+          </li>
+        {% endif %}
+      {% endfor %}
+      
+      {% if softwares.has_next %}
+        <li>
+          <a href="#" data-page="{{ softwares.next_page_number }}" class="page-link flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Next</a>
+        </li>
+        <li>
+          <a href="#" data-page="{{ softwares.paginator.num_pages }}" class="page-link flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Last</a>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endif %}
+
+
+
+<div class="pb-5 fixed left-0 right-0 z-50 items-center justify-center hidden overflow-x-hidden overflow-y-auto top-4 md:inset-0 h-modal sm:h-full" id="document-upload">
+  <div class="relative w-full h-full max-w-4xl px-4 md:h-auto">
+      <!-- Modal content -->
+      <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+        <!-- Modal header -->
+        <div class="flex items-start justify-between p-5 border-b rounded-t dark:border-gray-700">
+            <h3 class="text-xl font-semibold dark:text-white">
+                Add Attachment
+            </h3>
+            <button type="button" class="rotate-toggle-button text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-toggle="document-upload">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>  
+            </button>
+        </div>
+        <!-- Modal body -->
+        <div style="height: 70vh;" class="p-6 space-y-6 overflow-y-auto">
+            <form method="post" action="{% url "create_finding_attachment" finding.id %}" enctype="multipart/form-data" >
+              {% csrf_token %}
+              
+                <div class="grid gap-4 mb-4 grid-cols-2">
+                    <div class="col-span-2">
+                        <label for="attachment_type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Attachment Type</label>
+                        <select {% if 'attachment_type' in read_only_fields %} readonly disabled {% elif 'attachment_type' in compulsory_fields %} required {% endif %} id="attachment_type" name="attachment_type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
+                            <option disabled selected value="">Select type</option>
+                            {% for value, label in attachment_type %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-span-2">
+                        <label for="attachment_status" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Attachment Status</label>
+                        <select {% if 'attachment_status' in read_only_fields %} readonly disabled {% elif 'attachment_status' in compulsory_fields %} required {% endif %} id="attachment_status" name="attachment_status" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
+                            <option selected value="">Select status</option>
+                            {% for value, label in attachment_status %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-span-2">
+                        <label for="version" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Version</label>
+                        <textarea {% if 'version' in read_only_fields %} readonly disabled {% elif 'version' in compulsory_fields %} required {% endif %} id="version" name="version" rows="1" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="version"></textarea>                    
+                    </div>
+                    <div class="col-span-2">
+                        <label for="description" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+                        <textarea {% if 'description' in read_only_fields %} readonly disabled {% elif 'description' in compulsory_fields %} required {% endif %} id="description" name="description" rows="4" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="description"></textarea>                    
+                    </div>
+                    <div class="col-span-2">
+                        <div class="flex items-center justify-center w-full">
+                            <label for="dropzone-file" class="flex flex-col items-center justify-center w-full h-52 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6" >
+                                    <svg class="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                                    </svg>
+                                    <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold">Click to upload</span> or drag and drop</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">SVG, PNG, JPG or GIF</p>
+                                </div>
+                                <input id="dropzone-file" type="file" name="attachment" class="hidden" required />
+                            </label>
+                        </div>
+                        <div id="previewContainer" class=""></div>
+                    </div>
+                </div>
+              
+            </div>
+            <!-- Modal footer -->
+            <div class="items-center p-6 border-t border-gray-200 rounded-b dark:border-gray-700">
+                <button class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800" type="submit">Add Attachment</button>
+            </div>
+        </form>
+    </div>
+  </div>
+</div>
+
+
+
+  <!-- csv -->
+  <div id="export-csv" tabindex="-1" aria-hidden="true" class="py-5 fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-7xl max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <!-- Modal header -->
+            <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <div>
+                  <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    Export as CSV
+                  </h3>
+                </div>
+                <div class="text-xl font-semibold text-gray-900 dark:text-white">
+                  {% if request.GET.order_by or request.GET.search or request.GET.snapshot %}
+                    {% with order_by=request.GET.order_by search=request.GET.search snapshot=request.GET.snapshot %}
+                      <a href="{% url 'export_finding_attachment_csv' %}?{% if order_by %}order_by={{ order_by }}{% endif %}{% if order_by and search %}&{% endif %}{% if search %}search={{ search }}{% endif %}{% if snapshot %}&snapshot={{ snapshot }}{% endif %}">
+                        <img class="w-8" src="{% static 'dist/images/export.png' %}" alt="">
+                      </a>
+                    {% endwith %}
+                  {% else %}
+                    <a href="{% url 'export_finding_attachment_csv' %}">
+                      <img class="w-8" src="{% static 'dist/images/export.png' %}" alt="">
+                    </a>
+                  {% endif %}
+                </div>
+                <div>
+                  <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="export-csv">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                  </button>
+                </div>
+            </div>
+            <!-- Modal body -->
+            <div class="p-6 space-y-6">
+              <div class="flex flex-col">
+                <div class="overflow-x-auto">
+                  <div class="inline-block min-w-full align-middle">
+                    <div class="overflow-hidden table-wrp shadow">
+                      {% include "includes/items-table.html" with items=softwares %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+    </div>
+  </div>
+
+    <!-- pdf -->
+    <div id="export-pdf" tabindex="-1" aria-hidden="true" class="py-5 fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+      <div class="relative w-full max-w-7xl max-h-full">
+          <!-- Modal content -->
+          <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+              <!-- Modal header -->
+              <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+                  <div>
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                      Export as PDF
+                    </h3>
+                  </div>
+                  {% comment %} <div class="text-xl font-semibold text-gray-900 dark:text-white">
+                    <a href="{% url "export_software_pdf" %}?page={{ softwares.number }}">
+                      <img class="w-8" src="{% static "dist/images/export.png" %}" alt="">
+                    </a>
+                  </div> {% endcomment %}
+                  <div>
+                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="export-pdf">
+                      <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                      </svg>
+                      <span class="sr-only">Close modal</span>
+                    </button>
+                  </div>
+              </div>
+              <!-- Modal body -->
+              <div class="p-6 space-y-6">
+                <div class="flex flex-col">
+                  <div class="overflow-x-auto">
+                    <div class="inline-block min-w-full align-middle">
+                      <div class="overflow-hidden shadow">
+                        {% include "includes/items-table.html" with items=softwares %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+          </div>
+      </div>
+    </div>
+
+
+</main>
+
+{{ pre_column|json_script:"pre_column" }}
+
+{% endblock content %}
+
+
+{% block extra_js %}
+
+<script>
+  document.getElementById('addButton').addEventListener('click', function() {
+    var fieldNames = {{ db_field_names|safe }};
+    var preColumn = JSON.parse(document.getElementById('pre_column').textContent);
+
+    var template = `
+      <div class="input-container flex align-center gap-5 mb-5">
+        <div class="flex">
+          <select name="key" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+            ${fieldNames.map(option => !preColumn.includes(option) ? `<option value="${option}">${option}</option>` : '').join('')}
+          </select>
+          <input name="value" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-r-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" type="text" placeholder="Enter value">
+        </div>
+        <button class="remove-button focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2  dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900" onclick="removeInputContainer(this)">X</button>
+      </div>
+    `;
+
+    var tempDiv = document.createElement('div');
+    tempDiv.innerHTML = template;
+
+    document.getElementById('inputContainer').appendChild(tempDiv);
+
+    document.getElementById('submitButton').style.display = 'inline-block';
+  });
+
+  function removeInputContainer(element) {
+    var inputContainer = element.closest('.input-container');
+
+    inputContainer.remove();
+    
+    var inputContainers = document.getElementsByClassName('input-container');
+    if (inputContainers.length === 0) {
+      document.getElementById('submitButton').style.display = 'none';
+    }
+  }
+
+</script>
+
+
+<script>
+  function getComboA(selectObject) {
+    var value = selectObject.value;
+  
+    fetch('/tables/create-finding-attachment-page-items/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRFToken': '{{ csrf_token }}',
+      },
+      body: `items=${value}`
+    })
+    .then(response => {
+      location.reload()
+    })
+  }
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var checkboxes = document.querySelectorAll('#dropdownDefaultCheckbox input[type="checkbox"]');
+    
+    checkboxes.forEach(function (checkbox) {
+
+      var targetColumnId = checkbox.getAttribute('data-target');
+      var targetColumn = document.getElementById('th_' + targetColumnId);
+      var exportTargetColumn = document.getElementById('th_' + targetColumnId + '_export');
+      var targetDataCells = document.querySelectorAll('.td_' + targetColumnId);
+
+      if (checkbox.checked) {
+        targetColumn.style.display = 'none';
+        exportTargetColumn.style.display = 'none';
+        targetDataCells.forEach(function (dataCell) {
+          dataCell.style.display = 'none';
+        });
+      }
+
+      checkbox.addEventListener('change', function () {
+        var targetColumnId = this.getAttribute('data-target');
+        var targetColumn = document.getElementById('th_' + targetColumnId);
+        var exportTargetColumn = document.getElementById('th_' + targetColumnId + '_export');
+        var targetDataCells = document.querySelectorAll('.td_' + targetColumnId);
+        
+        if (this.checked) {
+          targetColumn.style.display = 'none';
+          exportTargetColumn.style.display = 'none';
+          targetDataCells.forEach(function (dataCell) {
+            dataCell.style.display = 'none';
+          });
+        } else {
+          targetColumn.style.display = '';
+          exportTargetColumn.style.display = '';
+          targetDataCells.forEach(function (dataCell) {
+            dataCell.style.display = '';
+          });
+        }
+
+        fetch('/tables/create-finding-attachment-hide-show-items/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}',
+          },
+          body: JSON.stringify({
+            key: targetColumnId,
+            value: this.checked
+          })
+        })
+
+      });
+    });
+  });
+</script>
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const paginationLinks = document.querySelectorAll('.page-link');
+    
+    paginationLinks.forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        const page = link.getAttribute('data-page');
+        const params = new URLSearchParams(window.location.search);
+        params.set('page', page);
+        window.location.href = `${window.location.pathname}?${params.toString()}`;
+      });
+    });
+  });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const orderLinks = document.querySelectorAll('.order-link');
+    const storedOrderBy = localStorage.getItem('finding_attachment_document_order_by');
+
+    let initialLoad = true;
+
+    orderLinks.forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        const order_by = link.getAttribute('data-order');
+        localStorage.setItem('finding_attachment_document_order_by', order_by);
+        const params = new URLSearchParams(window.location.search);
+        params.set('order_by', order_by);
+        const newUrl = window.location.href = `${window.location.pathname}?${params.toString()}`;
+        history.replaceState(null, null, newUrl);
+      });
+    });
+
+    if (storedOrderBy && initialLoad) {
+      const params = new URLSearchParams(window.location.search);
+      params.set('order_by', storedOrderBy);
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      history.replaceState(null, null, newUrl);
+      initialLoad = false;
+
+      if( !localStorage.getItem('orderFirstLoad') ) {
+        localStorage['orderFirstLoad'] = true;
+        window.location.reload();
+      } else {
+        localStorage.removeItem('orderFirstLoad');
+      }
+    }
+
+  });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const searchForm = document.getElementById('search-form');
+    const storedSearch = localStorage.getItem('finding_attachment_search');
+
+    let initialLoad = true;
+    
+    searchForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const searchInput = document.getElementById('finding-attachment-search');
+      const search = searchInput.value;
+      localStorage.setItem('finding_attachment_search', search);
+      const params = new URLSearchParams(window.location.search);
+      params.set('search', search);
+      const newUrl = window.location.href = `${window.location.pathname}?${params.toString()}`;
+      history.replaceState(null, null, newUrl);
+    });
+
+    if (storedSearch && initialLoad) {
+      const params = new URLSearchParams(window.location.search);
+      params.set('search', storedSearch);
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      history.replaceState(null, null, newUrl);
+      initialLoad = false;
+
+
+      if( !localStorage.getItem('searchFirstLoad') ) {
+        localStorage['searchFirstLoad'] = true;
+        window.location.reload();
+      } else {
+        localStorage.removeItem('searchFirstLoad');
+      }
+
+    }
+
+  });
+
+</script>
+
+<script>
+  function toggleRotation() {
+    document.querySelectorAll('.overflow-x-auto[style], .inline-block[style]').forEach(function(element) {
+      if (element.style.transform === '') {
+        element.style.transform = 'rotateX(180deg)';
+      } else {
+        element.style.transform = '';
+      }
+    });
+  }
+
+  function handleClick(event) {
+    const clickedElement = event.target;
+    const isActionButton = clickedElement.closest('.action-btn');
+    const isInsideModal = clickedElement.closest('.action-modal');
+
+    if (isInsideModal) {
+      return;
+    }
+
+    if (!isActionButton) {
+      document.querySelectorAll('.overflow-x-auto[style], .inline-block[style]').forEach(function(element) {
+        element.style.transform = 'rotateX(180deg)';
+      })
+    } else {
+      document.querySelectorAll('.overflow-x-auto[style], .inline-block[style]').forEach(function(element) {
+        element.style.transform = '';
+      })
+    }
+
+    const updateButtons = document.querySelectorAll('.rotate-toggle-button');
+
+    updateButtons.forEach(function(button) {
+      button.addEventListener('click', function() {
+        document.querySelectorAll('.overflow-x-auto[style], .inline-block[style]').forEach(function(element) {
+          element.style.transform = 'rotateX(180deg)';
+        })
+      });
+    });
+
+  }
+  document.addEventListener('click', handleClick);
+</script>
+
+<script>
+  var selectElement = document.getElementById('snapshots');
+
+  selectElement.addEventListener('change', function() {
+    var selectedValue = selectElement.value;
+    const params = new URLSearchParams(window.location.search);
+    params.set('snapshot', selectedValue);
+    const newUrl = window.location.href = `${window.location.pathname}?${params.toString()}`;
+    history.replaceState(null, null, newUrl);
+
+  });
+
+</script>
+
+<script>
+  function openFile(fileUrl) {
+    // Create a temporary link element
+    var link = document.createElement('a');
+    link.href = fileUrl;
+    link.target = '_blank';
+    link.download = fileUrl.split('/').pop(); // Extract the filename from the URL
+
+    // Trigger a click event on the link
+    link.click();
+  }
+</script>
+
+<!--Remove Filters / Clear Search-->
+<script>
+  document.getElementById('removeSearchButton').addEventListener('click', function() {
+    var baseUrl = window.location.href.split('?')[0];
+    history.pushState({}, document.title, baseUrl);
+    localStorage.removeItem('finding_attachment_search');
+    window.location.reload();
+  });
+</script>
+
+
+
+<script>
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const dropzone = document.getElementById("dropzone-file");
+        const previewContainer = document.getElementById("previewContainer");
+    
+        function handleFileUpload(file) {
+            if (!file) return;
+
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            dropzone.files = dataTransfer.files;
+    
+            previewContainer.innerHTML = "";
+
+            const fileType = file.name.split('.').pop().toLowerCase();
+            const previewElement = document.createElement("div");
+            previewElement.classList.add("relative", "bg-gray-200", "p-2", "rounded-lg", "shadow");
+    
+            if (["jpg", "jpeg", "png", "gif", "svg"].includes(fileType)) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    previewElement.innerHTML = `
+                        <img src="${e.target.result}" alt="${file.name}" class="w-full h-32 object-cover rounded-lg">
+                        <p class="text-sm text-gray-700 mt-1 truncate">${file.name}</p>
+                    `;
+                    previewContainer.classList.add('mt-4')
+                    previewContainer.appendChild(previewElement);
+                };
+                reader.readAsDataURL(file);
+            } else {
+                previewElement.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <span class="text-gray-700 font-semibold">${file.name}</span>
+                    </div>
+                `;
+                previewContainer.classList.add('mt-4')
+                previewContainer.appendChild(previewElement);
+            }
+        }
+        dropzone.parentElement.addEventListener("dragover", (event) => {
+            event.preventDefault();
+            dropzone.parentElement.classList.add("border-blue-500");
+        });
+    
+        dropzone.parentElement.addEventListener("dragleave", () => {
+            dropzone.parentElement.classList.remove("border-blue-500");
+        });
+    
+        dropzone.parentElement.addEventListener("drop", (event) => {
+            event.preventDefault();
+            dropzone.parentElement.classList.remove("border-blue-500");
+    
+            if (event.dataTransfer.files.length > 0) {
+                handleFileUpload(event.dataTransfer.files[0]);
+            }
+        });
+        dropzone.addEventListener("change", function (event) {
+            if (this.files.length > 0) {
+                handleFileUpload(this.files[0]);
+            }
+        });
+    });
+
+</script>
+
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll('.edit-attachment').forEach((button) => {
+            const id = button.getAttribute('data-id');
+            const dropzone = document.getElementById(`dropzone-file-${id}`);
+            const previewContainer = document.getElementById(`previewContainer-${id}`);
+            const existingFileUrl = document.getElementById(`existingFileUrl-${id}`).value.trim();
+            const existingFileName = document.getElementById(`existingFileName-${id}`).value.trim();
+            
+            function handleFileUpload(file) {
+                if (!file) return;
+    
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                dropzone.files = dataTransfer.files;
+    
+                previewContainer.innerHTML = "";
+    
+                const fileType = file.name.split('.').pop().toLowerCase();
+                const previewElement = document.createElement("div");
+                previewElement.classList.add("relative", "bg-gray-200", "p-2", "rounded-lg", "shadow");
+    
+                if (["jpg", "jpeg", "png", "gif", "svg"].includes(fileType)) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        previewElement.innerHTML = `
+                            <img src="${e.target.result}" alt="${file.name}" class="w-full h-32 object-cover rounded-lg">
+                            <p class="text-sm text-gray-700 mt-1 truncate">${file.name}</p>
+                        `;
+                        previewContainer.classList.add('mt-4')
+                        previewContainer.appendChild(previewElement);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    previewElement.innerHTML = `
+                        <div class="flex items-center space-x-2">
+                            <span class="text-gray-700 font-semibold">${file.name}</span>
+                        </div>
+                    `;
+                    previewContainer.classList.add('mt-4')
+                    previewContainer.appendChild(previewElement);
+                }
+            }
+    
+            dropzone.parentElement.addEventListener("dragover", (event) => {
+                event.preventDefault();
+                dropzone.parentElement.classList.add("border-blue-500");
+            });
+    
+            dropzone.parentElement.addEventListener("dragleave", () => {
+                dropzone.parentElement.classList.remove("border-blue-500");
+            });
+    
+            dropzone.parentElement.addEventListener("drop", (event) => {
+                event.preventDefault();
+                dropzone.parentElement.classList.remove("border-blue-500");
+    
+                if (event.dataTransfer.files.length > 0) {
+                    handleFileUpload(event.dataTransfer.files[0]);
+                }
+            });
+    
+            dropzone.addEventListener("change", function (event) {
+                if (this.files.length > 0) {
+                    handleFileUpload(this.files[0]);
+                }
+            });
+    
+            // Display existing file if present
+            if (existingFileUrl && existingFileName) {
+                const fileType = existingFileName.split('.').pop().toLowerCase();
+                const previewElement = document.createElement("div");
+                previewElement.classList.add("relative", "bg-gray-200", "p-2", "rounded-lg", "shadow");
+    
+                if (["jpg", "jpeg", "png", "gif", "svg"].includes(fileType)) {
+                    previewElement.innerHTML = `
+                        <img src="${existingFileUrl}" alt="${existingFileName}" class="w-full h-32 object-cover rounded-lg">
+                        <p class="text-sm text-gray-700 mt-1 truncate">${existingFileName}</p>
+                    `;
+                } else {
+                    previewElement.innerHTML = `
+                        <div class="flex items-center space-x-2">
+                            <span class="text-gray-700 font-semibold">${existingFileName}</span>
+                        </div>
+                    `;
+                }
+                
+                previewContainer.classList.add('mt-4')
+                previewContainer.appendChild(previewElement);
+            }
+        });
+    });
+    
+</script>
+
+
+{% endblock extra_js %}

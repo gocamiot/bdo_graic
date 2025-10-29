@@ -1,0 +1,562 @@
+{% extends "layouts/base.html" %}
+{% load static get_attribute %}
+
+{% block extrastyle %}
+
+<style>
+  .table-wrp  {
+    max-height: 75vh;
+    overflow-y: auto;
+    display:block;
+  }
+  thead{
+    position:sticky;
+    top:0
+  }
+</style>
+
+{% endblock extrastyle %}
+
+{% block content %}
+
+
+<main>
+  <div
+    class="p-4 bg-white block sm:flex items-center justify-between border-b border-gray-200 lg:mt-1.5 dark:bg-gray-800 dark:border-gray-700">
+    <div class="w-full mb-1">
+      <div class="mb-4">
+        {% include "includes/breadcrumb.html" %}
+        <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">
+          Estate Software Device Count   
+          <span class="inline-flex items-center justify-center w-1/2 px-2 py-2.5 text-sm font-medium text-center text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700">
+            {{ dt_counts.paginator.count }} out of {{ total_items }}
+          </span>    
+        </h1>
+      </div>
+      <div class="items-center justify-between block sm:flex dark:divide-gray-700">
+        <div class="flex items-center mb-4 sm:mb-0">
+          <form class="sm:pr-3 flex itmes-center gap-2" id="search-form" method="GET">
+            <div>
+              <label for="software-search" class="sr-only">Search</label>
+              <div class="relative w-48 sm:w-64 xl:w-96">
+                <input type="text" name="search" id="software-search"
+                  class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+                  placeholder="Global search">
+              </div>
+            </div>
+            <div>
+              <button type="submit" class="inline-flex items-center justify-center w-1/2 px-3 py-2.5 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+                <svg class="w-5 h-5 text-white dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                </svg>
+              </button>
+            </div>
+          </form>
+        </div>
+
+
+        {% comment %} <div class="flex items-center ml-auto space-x-2 sm:space-x-3">
+          <form action="" method="post">
+            <button id="dropdownCheckboxButton" data-dropdown-toggle="dropdownDefaultCheckbox" class="inline-flex items-center justify-center w-1/2 px-2 py-2.5 text-sm font-medium text-center text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700" type="button">
+              Hide / Show Column
+              <svg class="w-2.5 h-2.5 ml-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+              </svg>
+            </button>
+            <!-- Dropdown menu -->
+            <div id="dropdownDefaultCheckbox" class="w-max z-10 hidden w-48 bg-white divide-y divide-gray-100 rounded-lg shadow dark:bg-gray-700 dark:divide-gray-600">
+              <ul class="p-3 space-y-3 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="dropdownCheckboxButton">
+                {% for field_name in field_names %}
+                  {% if not field_name.key in pre_column %}
+                  <li>
+                    <div class="flex items-center">
+                      <input id="checkbox-item-{{ field_name.id }}" data-target="{{ field_name.key }}" {% if field_name.value %} checked {% endif %} type="checkbox" value="{{ field_name.key }}" name="key" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                      <label for="checkbox-item-{{ field_name.id }}" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">{{ field_name.key }}</label>
+                    </div>
+                  </li>
+                  {% else %}
+                  <li class="hidden">
+                    <div class="flex items-center">
+                      <input id="checkbox-item-{{ field_name.id }}" data-target="{{ field_name.key }}" disabled checked type="checkbox" value="{{ field_name.key }}" name="key" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                      <label for="checkbox-item-{{ field_name.id }}" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">{{ field_name.key }}</label>
+                    </div>
+                  </li>
+                  {% endif %}
+                {% endfor %}
+              </ul>
+            </div>
+          </form>
+        </div> {% endcomment %}
+
+        <div class="flex items-center ml-auto space-x-2 sm:space-x-3">
+
+          <form method="post" class="inline-flex items-center justify-center w-1/2 px-2 py-2 text-sm font-medium text-center text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700">
+            {% csrf_token %}
+
+            <select onchange="getComboA(this)" id="items" class="bg-transparent dark:text-white py-0 border-transparent focus:border-transparent focus:ring-0">
+              <option class="dark:bg-gray-800" {% if items == 25 %} selected {% endif %} value="25">25 Items</option>
+              <option class="dark:bg-gray-800" {% if items == 50 %} selected {% endif %} value="50">50 Items</option>
+              <option class="dark:bg-gray-800" {% if items == 100 %} selected {% endif %} value="100">100 Items</option>
+            </select>
+            
+          </form>
+        </div> 
+
+      </div>
+
+      <div class="items-center mt-4 justify-between block flex">
+        <div class="flex items-center sm:mb-0">
+
+          <form action="{% url "create_software_count_filter" %}" class="sm:pr-3 w-3/12" method="post">
+            {% csrf_token %}
+            <div class="flex items-center gap-5">
+              <div>
+                <h1 style="white-space: nowrap;" class="block mb-2 dark:text-white">Filters</h1>
+              </div>
+              <div>
+                <button id="addButton" type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Add</button>
+              </div>
+            </div>
+
+            <div id="inputContainer">
+              {% if filter_instance %}
+                {% for filter_data in filter_instance %}
+                <div class="input-container flex align-center gap-5 mb-5">
+                  <div class="flex">
+                    <input type="hidden" name="change_field_id" value="{{filter_data.id}}">
+                    <select name="key_change" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                      {% for field in db_field_names %}
+                        <option {% if filter_data.key == field %}selected{% endif %} value="{{ field }}">{{ field }}</option>
+                      {% endfor %}
+                    </select>
+                    <input name="value_change" value="{{ filter_data.value }}" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-r-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" type="text" placeholder="Enter value">
+                  </div>
+                  <a href="{% url "delete_software_count_filter" filter_data.id %}" class="remove-button focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2  dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900">X</a>
+                </div>
+                {% endfor %}
+              {% endif %}
+            </div>
+
+            <button id="submitButton" type="submit" {% if not filter_instance %} style="display: none;" {% endif %} class="bg-green-500 text-white px-4 py-2 rounded-md mt-4">Submit</button>
+          </form>
+
+        </div>
+
+        <div></div>
+        
+      </div>
+
+    </div>
+  </div>
+  <div class="flex flex-col">
+    <div style="transform:rotateX(180deg);" class="overflow-x-auto">
+      <div style="transform:rotateX(180deg);" class="inline-block min-w-full align-middle">
+        <div class="overflow-hidden table-wrp shadow">
+          <table class="min-w-full divide-y divide-gray-200 table-fixed dark:divide-gray-600">
+            <thead class="bg-gray-100 dark:bg-gray-700">
+              <tr>
+                <th id="" scope="col" class="p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                    <div class="group flex items-center gap-2 whitespace-nowrap h-6">
+                      <span class="block">Group By</span>
+                      <select id="group_by" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                        {% for field in db_field_names %}
+                          <option {% if group_by_fields == field %} selected {% endif %} value="{{ field }}">{{ field }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                </th>
+                <th id="" scope="col" class="p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                    <div class="group flex items-center gap-2 whitespace-nowrap h-6">
+                      <span class="block">Count</span>
+                      <select id="count" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                        {% for field in db_field_names %}
+                          <option {% if count_fields == field %} selected {% endif %} value="{{ field }}">{{ field }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+
+              {% for dt_count in dt_counts %}
+              <tr>
+                  <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                    {{ dt_count|getattribute:group_by_fields }}
+                  </td>
+                  <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                    {{ dt_count.device_count }}
+                  </td>
+              </tr>
+              {% endfor %}
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  {% if dt_counts.has_other_pages %}
+  <nav aria-label="Page navigation example" class="mt-5 ml-4">
+    <ul class="inline-flex -space-x-px text-base h-10">
+      {% if dt_counts.has_previous %}
+        <li>
+          <a href="#" data-page="1" class="page-link flex items-center justify-center px-4 h-10 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">First</a>
+        </li>
+        <li>
+          <a href="#" data-page="{{ dt_counts.previous_page_number }}" class="page-link flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Prev</a>
+        </li>
+      {% endif %}
+
+      {% for n in dt_counts.paginator.page_range %}
+        {% if dt_counts.number == n %}
+          <li>
+            <span class="flex items-center justify-center px-4 h-10 text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white">{{ n }}<span class="sr-only"></span></span>
+          </li>
+        {% elif n > dt_counts.number|add:'-3' and n < dt_counts.number|add:'3' %}
+          <li>
+            <a class="page-link flex items-center justify-center px-4 h-10 leading-tight {% if dt_counts.number == i %}text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white{% else %}text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white{% endif %}" data-page="{{ n }}" href="#">
+              {{ n }}
+            </a>
+          </li>
+        {% endif %}
+      {% endfor %}
+      
+      {% if dt_counts.has_next %}
+        <li>
+          <a href="#" data-page="{{ dt_counts.next_page_number }}" class="page-link flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Next</a>
+        </li>
+        <li>
+          <a href="#" data-page="{{ dt_counts.paginator.num_pages }}" class="page-link flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Last</a>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endif %}
+
+
+</main>
+
+
+{% endblock content %}
+
+
+{% block extra_js %}
+
+
+
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const paginationLinks = document.querySelectorAll('.page-link');
+    
+    paginationLinks.forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        const page = link.getAttribute('data-page');
+        const params = new URLSearchParams(window.location.search);
+        params.set('page', page);
+        window.location.href = `${window.location.pathname}?${params.toString()}`;
+      });
+    });
+  });
+</script>
+
+
+<script>
+  function toggleRotation(button) {
+    document.querySelectorAll('.overflow-x-auto[style], .inline-block[style]').forEach(function(element) {
+      if (element.style.transform === '') {
+        element.style.transform = 'rotateX(180deg)';
+      } else {
+        element.style.transform = '';
+      }
+    });
+  }
+  const updateButtons = document.querySelectorAll('.rotate-toggle-button');
+
+  updateButtons.forEach(function(button) {
+    button.addEventListener('click', function() {
+      toggleRotation(this);
+    });
+  });
+</script>
+
+<script>
+  document.getElementById('group_by').addEventListener('change', function() {
+    const selectedValue = this.value;
+    const currentUrlParams = new URLSearchParams(window.location.search);
+
+    fetch(`/tables/dt-count/?group_by=${selectedValue}`)
+      .then(response => response.text())
+      .then(data => {
+        const newParams = new URLSearchParams();
+        for (const [key, value] of currentUrlParams.entries()) {
+          newParams.append(key, value);
+        }
+        newParams.set('group_by', selectedValue);
+        const newUrl = `${window.location.pathname}?${newParams.toString()}`;
+        window.location.href = newUrl;
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+  });
+</script>
+
+<script>
+  document.getElementById('count').addEventListener('change', function() {
+    const selectedValue = this.value;
+    const currentUrlParams = new URLSearchParams(window.location.search);
+
+    fetch(`/tables/dt-count/?count=${selectedValue}`)
+      .then(response => response.text())
+      .then(data => {
+        const newParams = new URLSearchParams();
+        for (const [key, value] of currentUrlParams.entries()) {
+          newParams.append(key, value);
+        }
+        newParams.set('count', selectedValue);
+        const newUrl = `${window.location.pathname}?${newParams.toString()}`;
+        window.location.href = newUrl;
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+  });
+</script>
+
+
+
+
+
+<script>
+  document.getElementById('addButton').addEventListener('click', function() {
+    var fieldNames = {{ db_field_names|safe }};
+
+    var template = `
+      <div class="input-container flex align-center gap-5 mb-5">
+        <div class="flex">
+          <select name="key" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+            ${fieldNames.map(option => `<option value="${option}">${option}</option>`).join('')}
+          </select>
+          <input name="value" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-r-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" type="text" placeholder="Enter value">
+        </div>
+        <button class="remove-button focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2  dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900" onclick="removeInputContainer(this)">X</button>
+      </div>
+    `;
+
+    var tempDiv = document.createElement('div');
+    tempDiv.innerHTML = template;
+
+    document.getElementById('inputContainer').appendChild(tempDiv);
+
+    document.getElementById('submitButton').style.display = 'inline-block';
+  });
+
+  function removeInputContainer(element) {
+    var inputContainer = element.closest('.input-container');
+
+    inputContainer.remove();
+    
+    var inputContainers = document.getElementsByClassName('input-container');
+    if (inputContainers.length === 0) {
+      document.getElementById('submitButton').style.display = 'none';
+    }
+  }
+
+</script>
+
+
+<script>
+  function getComboA(selectObject) {
+    var value = selectObject.value;
+  
+    fetch('/tables/create-software-count-page-items/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRFToken': '{{ csrf_token }}',
+      },
+      body: `items=${value}`
+    })
+    .then(response => {
+      location.reload()
+    })
+  }
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var checkboxes = document.querySelectorAll('#dropdownDefaultCheckbox input[type="checkbox"]');
+    
+    checkboxes.forEach(function (checkbox) {
+
+      var targetColumnId = checkbox.getAttribute('data-target');
+      var targetColumn = document.getElementById('th_' + targetColumnId);
+      var exportTargetColumn = document.getElementById('th_' + targetColumnId + '_export');
+      var targetDataCells = document.querySelectorAll('.td_' + targetColumnId);
+
+      if (checkbox.checked) {
+        targetColumn.style.display = 'none';
+        exportTargetColumn.style.display = 'none';
+        targetDataCells.forEach(function (dataCell) {
+          dataCell.style.display = 'none';
+        });
+      }
+
+      checkbox.addEventListener('change', function () {
+        var targetColumnId = this.getAttribute('data-target');
+        var targetColumn = document.getElementById('th_' + targetColumnId);
+        var exportTargetColumn = document.getElementById('th_' + targetColumnId + '_export');
+        var targetDataCells = document.querySelectorAll('.td_' + targetColumnId);
+        
+        if (this.checked) {
+          targetColumn.style.display = 'none';
+          exportTargetColumn.style.display = 'none';
+          targetDataCells.forEach(function (dataCell) {
+            dataCell.style.display = 'none';
+          });
+        } else {
+          targetColumn.style.display = '';
+          exportTargetColumn.style.display = '';
+          targetDataCells.forEach(function (dataCell) {
+            dataCell.style.display = '';
+          });
+        }
+
+        fetch('/tables/create-software-count-hide-show-filter/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}',
+          },
+          body: JSON.stringify({
+            key: targetColumnId,
+            value: this.checked
+          })
+        })
+
+      });
+    });
+  });
+</script>
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const paginationLinks = document.querySelectorAll('.page-link');
+    
+    paginationLinks.forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        const page = link.getAttribute('data-page');
+        const params = new URLSearchParams(window.location.search);
+        params.set('page', page);
+        window.location.href = `${window.location.pathname}?${params.toString()}`;
+      });
+    });
+  });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const orderLinks = document.querySelectorAll('.order-link');
+    const storedOrderBy = localStorage.getItem('software_order_by');
+
+    let initialLoad = true;
+
+    orderLinks.forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        const order_by = link.getAttribute('data-order');
+        localStorage.setItem('software_order_by', order_by);
+        const params = new URLSearchParams(window.location.search);
+        params.set('order_by', order_by);
+        const newUrl = window.location.href = `${window.location.pathname}?${params.toString()}`;
+        history.replaceState(null, null, newUrl);
+      });
+    });
+
+    if (storedOrderBy && initialLoad) {
+      const params = new URLSearchParams(window.location.search);
+      params.set('order_by', storedOrderBy);
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      history.replaceState(null, null, newUrl);
+      initialLoad = false;
+
+      if( !localStorage.getItem('orderFirstLoad') ) {
+        localStorage['orderFirstLoad'] = true;
+        window.location.reload();
+      } else {
+        localStorage.removeItem('orderFirstLoad');
+      }
+    }
+
+  });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const searchForm = document.getElementById('search-form');
+    const storedSearch = localStorage.getItem('software_search');
+
+    let initialLoad = true;
+    
+    searchForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const searchInput = document.getElementById('software-search');
+      const search = searchInput.value;
+      localStorage.setItem('software_search', search);
+      const params = new URLSearchParams(window.location.search);
+      params.set('search', search);
+      const newUrl = window.location.href = `${window.location.pathname}?${params.toString()}`;
+      history.replaceState(null, null, newUrl);
+    });
+
+    if (storedSearch && initialLoad) {
+      const params = new URLSearchParams(window.location.search);
+      params.set('search', storedSearch);
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      history.replaceState(null, null, newUrl);
+      initialLoad = false;
+
+
+      if( !localStorage.getItem('searchFirstLoad') ) {
+        localStorage['searchFirstLoad'] = true;
+        window.location.reload();
+      } else {
+        localStorage.removeItem('searchFirstLoad');
+      }
+
+    }
+
+  });
+
+</script>
+
+<script>
+  function toggleRotation(button) {
+    document.querySelectorAll('.overflow-x-auto[style], .inline-block[style]').forEach(function(element) {
+      if (element.style.transform === '') {
+        element.style.transform = 'rotateX(180deg)';
+      } else {
+        element.style.transform = '';
+      }
+    });
+  }
+  const updateButtons = document.querySelectorAll('.rotate-toggle-button');
+
+  updateButtons.forEach(function(button) {
+    button.addEventListener('click', function() {
+      toggleRotation(this);
+    });
+  });
+</script>
+
+
+
+{% endblock extra_js %}

@@ -1,0 +1,45 @@
+{% load static get_attribute %}
+
+<div class="flex flex-col">
+    <div style="transform:rotateX(180deg);" class="overflow-x-auto">
+      <div style="transform:rotateX(180deg);" class="inline-block min-w-full align-middle">
+        <div class="overflow-hidden shadow">
+          <table class="min-w-full divide-y divide-gray-200 table-fixed dark:divide-gray-600">
+            <thead class="bg-gray-100 dark:bg-gray-700">
+              <tr>
+                {% for field in db_field_names %}
+                  <th id="th_{{ field }}" scope="col" class="p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                    <div class="group flex items-center gap-2 whitespace-nowrap h-6 w-48">
+                      <span class="block">{{ field }}</span>
+                      <div class="hidden group-hover:inline-block">
+                        <a class="order-link" data-order="{{ field }}" href="#">
+                          <img class="w-3" src="{% static "dist/images/up-arrow.png" %}" alt="">
+                        </a>
+                        <a class="order-link" data-order="-{{ field }}" href="#">
+                          <img class="w-3" src="{% static "dist/images/arrow-down.png" %}" alt="">
+                        </a>
+                      </div>
+                    </div>
+                  </th>
+                {% endfor %}
+
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+
+              {% for device in devices %}
+                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                  {% for field_name in db_field_names %}
+                  <td class="td_{{ field_name }} p-2 text-sm font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                    {{ device|getattribute:field_name }}
+                  </td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>

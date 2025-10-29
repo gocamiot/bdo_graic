@@ -1,0 +1,91 @@
+{% extends "layouts/base.html" %}
+{% load static get_attribute file_extension replace_value %}
+
+{% block content %}
+
+
+<main>
+    <div class="p-4 bg-white block sm:flex items-center justify-between border-b border-gray-200 lg:mt-1.5 dark:bg-gray-800 dark:border-gray-700">
+        <div class="w-full mb-1">
+            <div class="mb-5">
+
+                <ul class="mb-7 flex flex-wrap text-sm font-medium text-center text-gray-500 border-b border-gray-200 dark:border-gray-700 dark:text-gray-400">
+                    <li class="me-2">
+                        <a href="{% url "image_loader" %}" class="inline-block p-4 rounded-t-lg hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-gray-300">Image Loader</a>
+                    </li>
+                    <li class="me-2">
+                        <a href="#" aria-current="page" class="inline-block p-4 text-blue-600 bg-gray-100 rounded-t-lg active dark:bg-gray-600 dark:text-white">Edit</a>
+                    </li>
+                </ul>
+                <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">
+                    Edit Image Loader
+                </h1>
+            </div>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            <form action="" class="p-5 shadow" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="grid grid-cols-6 gap-6 mb-5">
+                    {% for field in form %}
+                        <div class="col-span-6">
+                            <label for="id_{{ field.name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field.label }} {% if field.name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                            {{ field }}
+                        </div>
+                    {% endfor %}
+
+                    {% for field_name in db_field_names %}
+                        {% if field_name == 'action_deadline' %}
+                        <div class="col-span-6 sm:col-span-3">
+                            <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name|title }} {% if field_name in read_only_fields %} <span title="Read only field">**</span> {% elif field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                            <input {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} type="datetime-local" value="{{ software.action_deadline|date:'Y-m-d\\TH:i' }}" name="{{ field_name }}" class="{% if field_name in read_only_fields %} cursor-not-allowed {% endif %} shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="">
+                        </div>
+                        {% else %}
+                            {% if field_name in richtext_fields %}
+                            {% else %}
+                                {% if not field_name in pre_column %}
+                                    {% if not field_name in COMBOS %}
+                                        {% if not field_name in date_picker_fields %}
+                                        <div class="col-span-6 sm:col-span-3">
+                                            <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name|title }} {% if field_name in read_only_fields %} <span title="Read only field">**</span> {% elif field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                                            <textarea {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} name="{{ field_name }}" cols="40" rows="1" placeholder="{{ field_name }}" class="{% if field_name in read_only_fields %} cursor-not-allowed {% endif %} shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="id_{{ field_name }}">{{ software|getattribute:field_name|default_if_none:"" }}</textarea>
+                                        </div>
+                                        {% else %}
+                                        <div class="col-span-6 sm:col-span-3">
+                                            <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name|title }} {% if field_name in read_only_fields %} <span title="Read only field">**</span> {% elif field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                                            <input {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} type="datetime-local" value="{{ software|getformattribute:field_name }}" name="{{ field_name }}" class="{% if field_name in read_only_fields %} cursor-not-allowed {% endif %} shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="">
+                                        </div>
+                                        {% endif %}
+                                    {% else %}
+                                    <div class="col-span-6 sm:col-span-3">
+                                        <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name|title }} {% if field_name in read_only_fields %} <span title="Read only field">**</span> {% elif field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                                        <select {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} name="{{ field_name }}" id="id_{{ field_name }}" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
+                                            <option value="" disabled selected hidden>Choose {{ field_name|set_article }} {{ field_name }}</option>
+                                            {% for combo_item in COMBOS|getattribute:field_name %}
+                                            <option {% if software|getattribute:field_name == combo_item %} selected {% endif %} value="{{ combo_item }}">{{ combo_item }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    {% endif %}
+                                {% endif %}
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <div class="">
+                    <button class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800" type="submit">Save</button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</main>
+
+{% endblock %}

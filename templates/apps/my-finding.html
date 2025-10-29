@@ -1,0 +1,1368 @@
+{% extends "layouts/base.html" %}
+{% load static get_attribute file_extension replace_value %}
+
+{% block extrastyle %}
+
+<link rel="stylesheet" href="{% static "dist/jquery.multi-select.css" %}">
+<style>
+  .table-wrp  {
+    max-height: 75vh;
+    overflow-y: auto;
+    display:block;
+  }
+  thead{
+    position:sticky;
+    top:0
+  }
+  .multi-select-button {
+    border-radius: 1rem;
+    border: none;
+  }
+</style>
+
+{% endblock extrastyle %}
+
+{% block content %}
+
+
+<main>
+  <div
+    class="p-4 bg-white block sm:flex items-center justify-between border-b border-gray-200 lg:mt-1.5 dark:bg-gray-800 dark:border-gray-700">
+    <div class="w-full mb-1">
+      <div class="mb-4">
+
+        <ul class="mb-7 flex flex-wrap text-sm font-medium text-center text-gray-500 border-b border-gray-200 dark:border-gray-700 dark:text-gray-400">
+          <li class="me-2">
+            <a href="{% url "finding" %}" aria-current="page" class="inline-block p-4 rounded-t-lg text-blue-600 bg-gray-100 active dark:bg-gray-600 dark:text-white">All Actions</a>
+          </li>
+          <li class="me-2">
+            <a href="#" aria-current="page" class="inline-block p-4 rounded-t-lg text-blue-600 bg-gray-100 active dark:bg-gray-600 dark:text-white">{{ title }}</a>
+          </li>                            
+        </ul>
+
+
+        <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">
+          My Actions
+          <span class="inline-flex items-center justify-center w-1/2 px-2 py-2.5 text-sm font-medium text-center text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700">
+            {{ softwares.paginator.count }} out of {{ total_items }}
+          </span>   
+          
+          <select id="action_status" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+            <option {% if action_selected == 'all' %} selected {% endif %} value="all">All</option>
+            <option {% if action_selected == 'OPEN' %} selected {% endif %} value="OPEN">Open</option>
+            <option {% if action_selected == 'CLOSE' %} selected {% endif %} value="CLOSE">Close</option>
+          </select> 
+        </h1>
+      </div>
+      <div class="items-center justify-between block sm:flex dark:divide-gray-700">
+        <div class="flex items-center mb-4 sm:mb-0">
+          <form class="sm:pr-3 flex itmes-center gap-2" id="search-form" method="GET">
+            <div>
+              <label for="finding-search" class="sr-only">Search</label>
+              <div class="relative w-48 sm:w-64 xl:w-96">
+                <input type="text" name="search" value="{{ request.GET.search }}" id="finding-search"
+                  class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+                  placeholder="Global search">
+              </div>
+            </div>
+            <div>
+              <button type="submit" class="inline-flex items-center justify-center w-1/2 px-3 py-2.5 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+                <svg class="w-5 h-5 text-white dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                </svg>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="flex items-center ml-auto space-x-2 sm:space-x-3">
+          <form action="" method="post">
+            <button id="dropdownCheckboxButton" data-dropdown-toggle="dropdownDefaultCheckbox" class="inline-flex items-center justify-center w-1/2 px-2 py-2.5 text-sm font-medium text-center text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700" type="button">
+              Hide / Show Column
+              <svg class="w-2.5 h-2.5 ml-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+              </svg>
+            </button>
+            <!-- Dropdown menu -->
+            <div id="dropdownDefaultCheckbox" class="w-max z-10 hidden w-64 bg-white divide-y divide-gray-100 rounded-lg shadow dark:bg-gray-700 dark:divide-gray-600">
+              <!-- Search Bar -->
+              <div class="sticky top-0 bg-white dark:bg-gray-700 p-3">
+                <input type="text" id="searchInput" placeholder="Search columns..." class="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-600 dark:text-gray-200 dark:border-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-300">
+              </div>
+              <!-- Scrollable List -->
+              <ul id="dropdownList" class="p-3 space-y-3 text-sm text-gray-700 dark:text-gray-200 max-h-60 overflow-y-auto">
+                <li id="selectAllParent">
+                  <div class="flex items-center">
+                    <input id="selectAll" type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                    <label for="selectAll" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Select All</label>
+                  </div>
+                </li>
+                {% for field_name in field_names %}
+                  {% if not field_name.key in pre_column %}
+                  <li>
+                    <div class="flex items-center">
+                      <input id="checkbox-item-{{ field_name.id }}" data-target="{{ field_name.key }}" {% if field_name.value %} checked {% endif %} type="checkbox" value="{{ field_name.key }}" name="key" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                      <label for="checkbox-item-{{ field_name.id }}" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">{{ field_name.key }}</label>
+                    </div>
+                  </li>
+                  {% else %}
+                  <li class="hidden pre-columns-parent">
+                    <div class="flex items-center">
+                      <input id="checkbox-item-{{ field_name.id }}" data-target="{{ field_name.key }}" disabled checked type="checkbox" value="{{ field_name.key }}" name="key" class="pre-columns w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                      <label for="checkbox-item-{{ field_name.id }}" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">{{ field_name.key }}</label>
+                    </div>
+                  </li>
+                  {% endif %}
+                {% endfor %}
+              </ul>
+              <!-- Save and Cancel Buttons -->
+              <div class="sticky bottom-0 bg-white dark:bg-gray-700 p-3 flex justify-end space-x-2">
+                <button type="button" class="save-button px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 dark:bg-blue-500 dark:hover:bg-blue-600">Save</button>
+                <button type="button" class="cancel-button px-3 py-2 text-sm font-medium text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200 focus:ring-4 focus:ring-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">Cancel</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div class="flex items-center ml-auto space-x-2 sm:space-x-3">
+          <form action="{% url "add_to_favorite" model_name='Finding' model_choice='FINDING_VIEW' %}" method="post">
+            {% csrf_token %}
+
+            <input type="hidden" name="search_fields" value="{{ request.GET.search }}" >
+            <input type="hidden" name="order_by" value="{{ request.GET.order_by }}" >
+            <input type="hidden" name="snapshot" value="{{ request.GET.snapshot }}" >
+            <input type="hidden" name="fav_name" value="{{ fav_name }}">
+            <input type="hidden" name="pre_columns" value="{{ pre_column }}">
+            <input type="hidden" name="pre_filters" value="{{ pre_filter }}">
+            <input type="hidden" name="richtext_fields" value="{{ richtext_fields }}">
+
+            <!-- <button type="submit" data-tooltip-target="favorite" data-tooltip-placement="bottom" class="inline-flex items-center justify-center w-1/2 px-2 py-2.5 text-sm font-medium text-center text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700">
+              <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 21 19">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4C5.5-1.5-1.5 5.5 4 11l7 7 7-7c5.458-5.458-1.542-12.458-7-7Z"/>
+              </svg>
+            </button> -->
+          </form>
+          <div id="favorite" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm opacity-0 tooltip dark:bg-gray-700">
+            Add to Favorite
+            <div class="tooltip-arrow" data-popper-arrow></div>
+          </div>
+          <form method="post" class="inline-flex items-center justify-center w-1/2 px-2 py-2 text-sm font-medium text-center text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700">
+            {% csrf_token %}
+
+            <select onchange="getComboA(this)" id="items" class="bg-transparent dark:text-white py-0 border-transparent focus:border-transparent focus:ring-0">
+              <option class="dark:bg-gray-800" {% if items == 25 %} selected {% endif %} value="25">25 Items</option>
+              <option class="dark:bg-gray-800" {% if items == 50 %} selected {% endif %} value="50">50 Items</option>
+              <option class="dark:bg-gray-800" {% if items == 100 %} selected {% endif %} value="100">100 Items</option>
+            </select>
+            
+          </form>
+          {% if request.user.is_authenticated %}
+          {% comment %} <button type="button" data-modal-toggle="add-software-modal" class="inline-flex items-center justify-center w-1/2 px-3 py-2 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+              <svg class="w-5 h-5 mr-2 -ml-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path></svg>
+              Add
+          </button> {% endcomment %}
+          {% endif %}
+          <div class="flex">
+            <a data-modal-target="export-csv" data-modal-toggle="export-csv">
+              <img class="w-10" src="{% static "dist/images/csv.png" %}" alt="">
+            </a>
+            {% if companies %}
+            <a href="{% url "export_my_finding_docx" companies %}">
+            {% else %}
+            <a href="{% url "export_my_finding_docx" %}">
+            {% endif %}
+              <img class="w-10" src="{% static "dist/images/docx.png" %}" alt="">
+            </a>
+            {% comment %} <a data-modal-target="export-pdf" data-modal-toggle="export-pdf">
+              <img class="w-10" src="{% static "dist/images/pdf.png" %}" alt="">
+            </a> {% endcomment %}
+          </div>
+        </div> 
+      
+      </div>
+
+      <div class="items-center mt-4 justify-between block flex">
+        <div class="flex items-center sm:mb-0">
+
+          <form method="post" action="{% url "create_finding_filter" %}">
+            {% csrf_token %}
+
+            <div class="flex items-center gap-5 mb-3">
+              <div>
+                <h1 style="white-space: nowrap;" class="block dark:text-white">Filters</h1>
+              </div>
+              <div>
+                <button onclick="addFilter()" type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Add</button>
+              </div>
+            </div>
+            <div id="filters-container">
+              <!-- Dynamic Filters Appear Here -->
+            </div>
+        
+            <button class="bg-green-500 text-white px-4 py-2 rounded-md mt-4" type="submit">Save</button>
+          </form>
+
+        </div>
+
+        <div></div>
+        
+      </div>
+    </div>
+  </div>
+  <div class="flex flex-col">
+    <div style="transform:rotateX(180deg);" class="overflow-x-auto">
+      <div style="transform:rotateX(180deg);" class="inline-block min-w-full align-middle">
+        <div class="overflow-hidden table-wrp shadow">
+          <table class="min-w-full divide-y divide-gray-200 table-fixed dark:divide-gray-600">
+            <thead class="bg-gray-100 dark:bg-gray-700">
+              <tr>
+                <th scope="col" class="p-2">
+                  <div class="flex items-center">
+                    <input id="checkbox-all" aria-describedby="checkbox-1" type="checkbox"
+                      class="w-4 h-4 border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:focus:ring-primary-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                    <label for="checkbox-all" class="sr-only">checkbox</label>
+                  </div>
+                </th>
+
+                {% if request.user.is_authenticated %}
+                <th scope="col" class="p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                  Action
+                </th>
+                {% endif %}
+                
+                {% for field in db_field_names %}
+                  <th title="{{ field }}" id="th_{{ field }}" scope="col" class="p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                    <div class="group flex items-center gap-2 whitespace-nowrap h-6 w-48">
+                      <span class="block whitespace-nowrap overflow-hidden">{{ field }}</span>
+                      <div class="hidden group-hover:inline-block">
+                        <a class="order-link" data-order="{{ field }}" href="#">
+                          <img class="w-3" src="{% static "dist/images/up-arrow.png" %}" alt="">
+                        </a>
+                        <a class="order-link" data-order="-{{ field }}" href="#">
+                          <img class="w-3" src="{% static "dist/images/arrow-down.png" %}" alt="">
+                        </a>
+                      </div>
+                    </div>
+                  </th>
+                {% endfor %}
+
+                {% if request.user.is_authenticated %}
+                <th scope="col" class="p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
+                  Action
+                </th>
+                {% endif %}
+
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+
+              {% for software in softwares %}
+              <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+
+                <td class="w-4 p-2">
+                  <div class="flex items-center">
+                    <input id="checkbox-194556" aria-describedby="checkbox-1" type="checkbox"
+                      class="w-4 h-4 border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:focus:ring-primary-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                    <label for="checkbox-194556" class="sr-only">checkbox</label>
+                  </div>
+                </td>
+
+                {% if request.user.is_authenticated %}
+                <td class="p-4  whitespace-nowrap">
+                  <a href="{% url "update_my_finding" software.id %}" class="action-btn inline-flex items-center px-1 py-2 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+                      <svg class="action-btn w-4 h-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"></path></svg>
+                  </a>
+
+                  <button onclick="toggleRotation(this)" type="button" data-modal-toggle="drawer-delete-product-default{{software.id}}" class="action-btn inline-flex items-center px-1 py-2 text-sm font-medium text-center text-white bg-red-600 rounded-lg hover:bg-red-800 focus:ring-4 focus:ring-red-300 dark:focus:ring-red-900">
+                      <svg class="action-btn w-4 h-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                  </button>
+                
+                  {% if software.content_type %}
+                  <a href="{% url "finding_details" software.id %}?{% if software.order_by %}order_by={{ software.order_by }}{% endif %}{% if software.order_by and software.search %}&{% endif %}{% if software.search %}search={{ software.search }}{% endif %}" class="inline-flex items-center px-1 py-2 text-sm font-medium text-center text-white bg-green-500 rounded-lg hover:bg-green-500 focus:ring-4 focus:ring-green-500 dark:focus:ring-green-500">
+                    <svg class="w-4 h-4 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <path stroke="currentColor" stroke-width="2" d="M21 12c0 1.2-4 6-9 6s-9-4.8-9-6c0-1.2 4-6 9-6s9 4.8 9 6Z"/>
+                      <path stroke="currentColor" stroke-width="2" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+                    </svg>
+                  </a>
+                  {% endif %}
+
+                  {% if software.is_parent %}
+                  <a href="{% url "finding_version_control_dt" software.id %}" class="inline-flex items-center px-1 py-2 text-sm font-medium text-center text-white bg-green-500 rounded-lg hover:bg-green-500 focus:ring-4 focus:ring-green-500 dark:focus:ring-green-500">
+                    <span class="w-4 h-4 block">V</span>
+                  </a>
+                  {% endif %}
+                  
+                  <a href="{% url "finding_attachment" software.id %}" class="inline-flex items-center px-1 py-2 text-sm font-medium text-center text-white bg-green-500 rounded-lg hover:bg-green-500 focus:ring-4 focus:ring-green-500 dark:focus:ring-green-500">
+                    <svg class="w-4 h-4 text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                      <path stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="M10 3v4a1 1 0 0 1-1 1H5m14-4v16a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7.914a1 1 0 0 1 .293-.707l3.914-3.914A1 1 0 0 1 9.914 3H18a1 1 0 0 1 1 1Z"/>
+                    </svg> 
+                  </a>
+
+                  <button type="button" data-id="{{ software.id }}" class="copy-url inline-flex items-center px-1 py-2 text-sm font-medium text-center text-white bg-green-500 rounded-lg hover:bg-green-500 focus:ring-4 focus:ring-green-500 dark:focus:ring-green-500">
+                    <svg class="w-4 h-4 text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                      <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.213 9.787a3.391 3.391 0 0 0-4.795 0l-3.425 3.426a3.39 3.39 0 0 0 4.795 4.794l.321-.304m-.321-4.49a3.39 3.39 0 0 0 4.795 0l3.424-3.426a3.39 3.39 0 0 0-4.794-4.795l-1.028.961"/>
+                    </svg>                    
+                  </button>
+
+                </td>
+                {% endif %}
+
+                
+                {% for field_name in db_field_names %}
+                  {% if field_name in richtext_fields %}
+                  <td class="td_{{ field_name }} p-4 text-base font-medium text-gray-900 dark:text-white">
+                    <div class="prose w-96">{{ software|getrichtextattribute:field_name|safe }}</div>
+                  </td>
+                  {% elif field_name in dropdown_fields %}
+                  <td class="td_{{ field_name }} p-4 text-base font-medium text-gray-900 dark:text-white">
+                    <div class="prose w-96">{{ software|getdropdownattribute:field_name }}</div>
+                  </td>
+                  {% else %}
+                  <td class="td_{{ field_name }} p-2 text-sm font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                    {% if field_name in unique_filter %}
+                    <a 
+                      class="underline text-primary-600" 
+                      href="{% url "unique_details" table_name field_name software|getattribute:field_name|default_if_none:"" %}"
+                    >
+                      {% if software|getattribute:field_name %}
+                          {{ software|getattribute:field_name }}
+                        {% else %}
+                          { Null }
+                        {% endif %}
+                    </a>
+                  {% else %}
+                    {{ software|getattribute:field_name|default_if_none:"" }}
+                  {% endif %}
+                  </td>
+                  {% endif %}
+                {% endfor %}
+
+                {% if request.user.is_authenticated %}
+                <td class="p-4  whitespace-nowrap">
+                  <a href="{% url "update_my_finding" software.id %}" class="action-btn inline-flex items-center px-1 py-2 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+                      <svg class="action-btn w-4 h-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"></path></svg>
+                  </a>
+                  
+                  <button onclick="toggleRotation(this)" type="button" data-modal-toggle="drawer-delete-product-default{{software.id}}" class="action-btn inline-flex items-center px-1 py-2 text-sm font-medium text-center text-white bg-red-600 rounded-lg hover:bg-red-800 focus:ring-4 focus:ring-red-300 dark:focus:ring-red-900">
+                      <svg class="action-btn w-4 h-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                  </button>
+
+                  {% if software.content_type %}
+                  <a href="{% url "finding_details" software.id %}?{% if software.order_by %}order_by={{ software.order_by }}{% endif %}{% if software.order_by and software.search %}&{% endif %}{% if software.search %}search={{ software.search }}{% endif %}" class="inline-flex items-center px-1 py-2 text-sm font-medium text-center text-white bg-green-500 rounded-lg hover:bg-green-500 focus:ring-4 focus:ring-green-500 dark:focus:ring-green-500">
+                    <svg class="w-4 h-4 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <path stroke="currentColor" stroke-width="2" d="M21 12c0 1.2-4 6-9 6s-9-4.8-9-6c0-1.2 4-6 9-6s9 4.8 9 6Z"/>
+                      <path stroke="currentColor" stroke-width="2" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+                    </svg>
+                  </a>
+                  {% endif %}
+
+                  {% if software.is_parent %}
+                  <a href="{% url "finding_version_control_dt" software.id %}" class="inline-flex items-center px-1 py-2 text-sm font-medium text-center text-white bg-green-500 rounded-lg hover:bg-green-500 focus:ring-4 focus:ring-green-500 dark:focus:ring-green-500">
+                    <span class="w-4 h-4 block">V</span>
+                  </a>
+                  {% endif %}
+                  
+                </td>
+                {% endif %}
+
+              </tr>
+
+              <!-- Delete Product Drawer -->
+              <div class="action-modal fixed left-0 right-0 z-50 items-center justify-center hidden overflow-x-hidden overflow-y-auto top-4 md:inset-0 h-modal sm:h-full" id="drawer-delete-product-default{{software.id}}">
+                <div class="relative w-full h-full max-w-md px-4 md:h-auto">
+                    <!-- Modal content -->
+                    <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+                        <!-- Modal header -->
+                        <div class="flex justify-end p-2">
+                            <button type="button" class="rotate-toggle-button text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-toggle="drawer-delete-product-default{{software.id}}">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>  
+                            </button>
+                        </div>
+                        <!-- Modal body -->
+                        <div class="p-6 pt-0 text-center">
+                            <svg class="w-16 h-16 mx-auto text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <h3 class="mt-5 mb-6 text-lg text-gray-500 dark:text-gray-400">Are you sure you want to delete this item?</h3>
+                            <a href="{% url "delete_finding" software.id %}" class="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-base inline-flex items-center px-3 py-2.5 text-center mr-2 dark:focus:ring-red-800">
+                                Yes, I'm sure
+                            </a>
+                            <a href="#" class="text-gray-900 bg-white hover:bg-gray-100 focus:ring-4 focus:ring-primary-300 border border-gray-200 font-medium inline-flex items-center rounded-lg text-base px-3 py-2.5 text-center dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700" data-modal-toggle="drawer-delete-product-default{{software.id}}">
+                                No, cancel
+                            </a>
+                        </div>
+                    </div>
+                </div>
+              </div>
+
+              <!-- Edit Product Drawer -->
+              <div class="action-modal pb-5 fixed left-0 right-0 z-50 items-center justify-center hidden overflow-x-hidden overflow-y-auto top-4 md:inset-0 h-modal sm:h-full" id="drawer-update-product-default{{software.id}}">
+                <div class="relative w-full h-full max-w-4xl px-4 md:h-auto">
+                    <!-- Modal content -->
+                    <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+                      <!-- Modal header -->
+                      <div class="flex items-start justify-between p-5 border-b rounded-t dark:border-gray-700">
+                          <h3 class="text-xl font-semibold dark:text-white">
+                              Edit item
+                          </h3>
+                          <button type="button" class="rotate-toggle-button text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-toggle="drawer-update-product-default{{software.id}}">
+                              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>  
+                          </button>
+                      </div>
+                      <!-- Modal body -->
+                      <div style="height: 70vh;" class="p-6 space-y-6 overflow-y-auto">
+                          <form method="post" action="{% url "update_finding" software.id %}">
+                            {% csrf_token %}
+                            
+                            <div class="grid grid-cols-6 gap-6">
+                              
+
+                              {% for field_name in db_field_names %}
+                                {% if field_name in richtext_fields %}
+                                {% else %}
+                                  {% if not field_name in pre_column %}
+                                    {% if not field_name in COMBOS %}
+                                      {% if not field_name in date_picker_fields %}
+                                      <div class="col-span-6 sm:col-span-3">
+                                          <!--<label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name }} {% if field_name in read_only_fields %} <span title="Read only field">**</span> {% endif %} </label>
+                                          <textarea {% if field_name in read_only_fields %} readonly disabled {% endif %} name="{{ field_name }}" cols="40" rows="1" placeholder="{{ field_name }}" class="{% if field_name in read_only_fields %} cursor-not-allowed {% endif %} shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="id_{{ field_name }}">{{ software|getattribute:field_name }}</textarea>-->
+                                          <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name|title }} {% if field_name in read_only_fields %} <span title="Read only field">**</span> {% elif field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                                          <textarea {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} name="{{ field_name }}" cols="40" rows="1" placeholder="{{ field_name }}" class="{% if field_name in read_only_fields %} cursor-not-allowed {% endif %} shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="id_{{ field_name }}">{{ software|getattribute:field_name|default_if_none:"" }}</textarea>
+                                      </div>
+                                      {% else %}
+                                      <div class="col-span-6 sm:col-span-3">
+                                        <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name|title }} {% if field_name in read_only_fields %} <span title="Read only field">**</span> {% elif field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                                        <input {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} type="datetime-local" value="{{ software|getformattribute:field_name }}" name="{{ field_name }}" class="{% if field_name in read_only_fields %} cursor-not-allowed {% endif %} shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="">
+                                      </div>
+                                      {% endif %}
+                                    {% else %}
+                                      <div class="col-span-6 sm:col-span-3">
+                                        <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name|title }} {% if field_name in read_only_fields %} <span title="Read only field">**</span> {% elif field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                                        <select {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} name="{{ field_name }}" id="id_{{ field_name }}" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
+                                          <!--<option selected>Choose a {{ field_name }}</option>-->
+                                          <option value="" disabled selected hidden>Choose {{ field_name|set_article }} {{ field_name }}</option>
+                                          {% for combo_item in COMBOS|getattribute:field_name %}
+                                          <option {% if software|getattribute:field_name == combo_item %} selected {% endif %} value="{{ combo_item }}">{{ combo_item }}</option>
+                                          {% endfor %}
+                                        </select>
+                                      </div>
+                                    {% endif %}
+                                  {% endif %}
+                                {% endif %}
+                              {% endfor %}
+                              
+                            </div>
+                            
+                          </div>
+                          <!-- Modal footer -->
+                          <div class="items-center p-6 border-t border-gray-200 rounded-b dark:border-gray-700">
+                              <button class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800" type="submit">Update item</button>
+                          </div>
+                      </form>
+                  </div>
+                </div>
+              </div>
+
+
+              {% endfor %}
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+  {% if softwares.has_other_pages %}
+  <nav aria-label="Page navigation example" class="mt-5 ml-4">
+    <ul class="inline-flex -space-x-px text-base h-10">
+      {% if softwares.has_previous %}
+        <li>
+          <a href="#" data-page="1" class="page-link flex items-center justify-center px-4 h-10 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">First</a>
+        </li>
+        <li>
+          <a href="#" data-page="{{ softwares.previous_page_number }}" class="page-link flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Prev</a>
+        </li>
+      {% endif %}
+
+      {% for n in softwares.paginator.page_range %}
+        {% if softwares.number == n %}
+          <li>
+            <span class="flex items-center justify-center px-4 h-10 text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white">{{ n }}<span class="sr-only"></span></span>
+          </li>
+        {% elif n > softwares.number|add:'-3' and n < softwares.number|add:'3' %}
+          <li>
+            <a class="page-link flex items-center justify-center px-4 h-10 leading-tight {% if softwares.number == i %}text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white{% else %}text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white{% endif %}" data-page="{{ n }}" href="#">
+              {{ n }}
+            </a>
+          </li>
+        {% endif %}
+      {% endfor %}
+      
+      {% if softwares.has_next %}
+        <li>
+          <a href="#" data-page="{{ softwares.next_page_number }}" class="page-link flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Next</a>
+        </li>
+        <li>
+          <a href="#" data-page="{{ softwares.paginator.num_pages }}" class="page-link flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Last</a>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endif %}
+
+
+
+  <!-- Add -->
+  <div class="pb-5 fixed left-0 right-0 z-50 items-center justify-center hidden overflow-x-hidden overflow-y-auto top-4 md:inset-0 h-modal sm:h-full" id="add-software-modal">
+    <div class="relative w-full h-full max-w-4xl px-4 md:h-auto">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            <!-- Modal header -->
+            <div class="flex items-start justify-between p-5 border-b rounded-t dark:border-gray-700">
+                <h3 class="text-xl font-semibold dark:text-white">
+                    Add new item
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-toggle="add-software-modal">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>  
+                </button>
+            </div>
+            <!-- Modal body -->
+            <div style="height: 70vh;" class="p-6 space-y-6 overflow-y-auto">
+                <form method="post" action="{% url "create_finding" %}">
+                  {% csrf_token %}
+
+                  <div class="grid grid-cols-6 gap-6">
+                    {% for field in form %}
+                        <div class="col-span-6">
+                            <label for="id_{{ field.name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field.label }} {% if field.name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                            {{ field }}
+                        </div>
+                    {% endfor %}
+
+                    {% for field in action_form %}
+                    <div class="col-span-6 sm:col-span-3">
+                        <label for="id_{{ field.name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field.label }}</label>
+                        {{ field }}
+                    </div>
+                    {% endfor %}
+
+                    {% for field_name in db_field_names %}
+                      {% if field_name == 'action_deadline' %}
+                        <div class="col-span-6 sm:col-span-3">
+                            <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name|title }} {% if field_name in read_only_fields %} <span title="Read only field">**</span> {% elif field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                            <input {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} type="datetime-local" value="{{ software.action_deadline|date:'Y-m-d\\TH:i' }}" name="{{ field_name }}" class="{% if field_name in read_only_fields %} cursor-not-allowed {% endif %} shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="">
+                        </div>
+                      {% else %}
+                        {% if field_name in richtext_fields %}
+                        {% else %}
+                          {% if not field_name in pre_column %}
+                            {% if not field_name in COMBOS %}
+                              {% if not field_name in date_picker_fields %}
+                              <div class="col-span-6 sm:col-span-3">
+                                  <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name|title }} {% if field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                                  <textarea {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} name="{{ field_name }}" cols="40" rows="1" placeholder="{{ field_name }}" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="id_{{ field_name }}"></textarea>
+                              </div>
+                              {% else %}
+                              <div class="col-span-6 sm:col-span-3">
+                                <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name|title }} {% if field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %}</label>
+                                <input {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} type="datetime-local" name="{{ field_name }}" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="">
+                              </div>
+                              {% endif %}
+                            {% else %}
+                              <div class="col-span-6 sm:col-span-3">
+                                <label for="id_{{ field_name }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field_name|title }} {% if field_name in compulsory_fields %} <span title="compulsory only field">*</span> {% endif %} </label>
+                                {% if field_name in multiselect_fields %}
+                                <select multiple {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} name="{{ field_name }}" id="id_{{ field_name }}" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
+                                  {% for combo_item in COMBOS|getattribute:field_name %}
+                                    <option value="{{ combo_item }}">{{ combo_item }}</option>
+                                  {% endfor %}
+                                </select>
+                                {% else %}
+                                <select {% if field_name in read_only_fields %} readonly disabled {% elif field_name in compulsory_fields %} required {% endif %} name="{{ field_name }}" id="id_{{ field_name }}" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
+                                  <option value="" disabled selected hidden>Choose {{ field_name|set_article }} {{ field_name }}</option>
+                                  {% for combo_item in COMBOS|getattribute:field_name %}
+                                    <option value="{{ combo_item }}">{{ combo_item }}</option>
+                                  {% endfor %}
+                                </select>
+                                {% endif %}
+                              </div>
+                            {% endif %}
+                          {% endif %}
+                        {% endif %}
+                      {% endif %}
+                    {% endfor %}
+                    
+                  </div>
+
+                </div>
+                <!-- Modal footer -->
+                <div class="items-center p-6 border-t border-gray-200 rounded-b dark:border-gray-700">
+                    <button class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800" type="submit">Add item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+  </div>
+
+
+  <!-- csv -->
+  <div id="export-csv" tabindex="-1" aria-hidden="true" class="py-5 fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-7xl max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <!-- Modal header -->
+            <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <div>
+                  <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    Export as CSV
+                  </h3>
+                </div>
+                <div class="text-xl font-semibold text-gray-900 dark:text-white">
+                  {% if request.GET.order_by or request.GET.search or request.GET.snapshot %}
+                    {% with order_by=request.GET.order_by search=request.GET.search snapshot=request.GET.snapshot %}
+                      {% if companies %}
+                      <a href="{% url 'export_my_finding_csv' companies %}?{% if order_by %}order_by={{ order_by }}{% endif %}{% if order_by and search %}&{% endif %}{% if search %}search={{ search }}{% endif %}{% if snapshot %}&snapshot={{ snapshot }}{% endif %}">
+                      {% else %}
+                      <a href="{% url 'export_my_finding_csv' %}?{% if order_by %}order_by={{ order_by }}{% endif %}{% if order_by and search %}&{% endif %}{% if search %}search={{ search }}{% endif %}{% if snapshot %}&snapshot={{ snapshot }}{% endif %}">
+                      {% endif %}
+                        <img class="w-8" src="{% static 'dist/images/export.png' %}" alt="">
+                      </a>
+                    {% endwith %}
+                  {% else %}
+                      {% if companies %}
+                      <a href="{% url 'export_my_finding_csv' companies %}">
+                      {% else %}
+                      <a href="{% url 'export_my_finding_csv' %}">
+                      {% endif %}
+                      <img class="w-8" src="{% static 'dist/images/export.png' %}" alt="">
+                    </a>
+                  {% endif %}
+                </div>
+                <div>
+                  <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="export-csv">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                  </button>
+                </div>
+            </div>
+            <!-- Modal body -->
+            <div class="p-6 space-y-6">
+              <div class="flex flex-col">
+                <div class="overflow-x-auto">
+                  <div class="inline-block min-w-full align-middle">
+                    <div class="overflow-hidden table-wrp shadow">
+                      {% include "includes/items-table.html" with items=softwares %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+    </div>
+  </div>
+
+    <!-- pdf -->
+    <div id="export-pdf" tabindex="-1" aria-hidden="true" class="py-5 fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+      <div class="relative w-full max-w-7xl max-h-full">
+          <!-- Modal content -->
+          <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+              <!-- Modal header -->
+              <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+                  <div>
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                      Export as PDF
+                    </h3>
+                  </div>
+                  {% comment %} <div class="text-xl font-semibold text-gray-900 dark:text-white">
+                    <a href="{% url "export_software_pdf" %}?page={{ softwares.number }}">
+                      <img class="w-8" src="{% static "dist/images/export.png" %}" alt="">
+                    </a>
+                  </div> {% endcomment %}
+                  <div>
+                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="export-pdf">
+                      <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                      </svg>
+                      <span class="sr-only">Close modal</span>
+                    </button>
+                  </div>
+              </div>
+              <!-- Modal body -->
+              <div class="p-6 space-y-6">
+                <div class="flex flex-col">
+                  <div class="overflow-x-auto">
+                    <div class="inline-block min-w-full align-middle">
+                      <div class="overflow-hidden shadow">
+                        {% include "includes/items-table.html" with items=softwares %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+          </div>
+      </div>
+    </div>
+
+
+</main>
+
+{{ pre_column|json_script:"pre_column" }}
+{{ date_picker_fields|json_script:"date-picker" }}
+{{ int_fields|json_script:"int-fields" }}
+{{ float_fields|json_script:"float-fields" }}
+
+{% endblock content %}
+
+
+{% block extra_js %}
+
+<!-- Script for new filter start -->
+<script>
+  let filterIndex = 0; 
+  document.addEventListener('DOMContentLoaded', function () {
+    const savedFilters = JSON.parse('{{ saved_filters|escapejs }}');
+
+    savedFilters.forEach((filter) => {
+      addFilter(filter.field_name, filter.value_start, filter.value_end, filter.is_not, filter.is_null, filter.is_not_null, filter.is_unique, filter.is_count, filter.id);
+    });
+  });
+
+  function setSummaryText(index, valueStart, valueEnd, isNot, isNull, isNotNull, isUnique, isCount) {
+    const selectedField = document.querySelector(`[name="field_name_${index}"]`);
+    const fieldType = selectedField.options[selectedField.selectedIndex].getAttribute('data-type');
+    let summaryText = '';
+
+    if (valueStart && valueEnd) {
+      summaryText = `From: ${valueStart} → To: ${valueEnd}`;
+    } else if (valueStart) {
+      if (fieldType === 'Text') {
+        summaryText = valueStart;
+      } else {
+        summaryText = `From: ${valueStart}`;
+      }
+    } else if (valueEnd) {
+      summaryText = `To: ${valueEnd}`;
+    } else {
+      summaryText = 'Options';
+    }
+
+    let badges = [];
+    if (isNot) badges.push('<span class="badge bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-xs">not</span>');
+    if (isNull) badges.push('<span class="badge bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-xs">null</span>');
+    if (isNotNull) badges.push('<span class="badge bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-xs">!null</span>');
+    if (isUnique) badges.push('<span class="badge bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-xs">!</span>');
+    if (isCount) badges.push('<span class="badge bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-xs">!#</span>');
+
+    const button = document.getElementById(`options-button-${index}`);
+    button.innerHTML = `${summaryText} ${badges.join(' ')}`;
+  }
+
+  function addFilter(fieldName = '', valueStart = '', valueEnd = '', isNot = false, isNull = false, isNotNull = false, isUnique = false, isCount = false, filterId = null) {
+    const container = document.getElementById('filters-container');
+    const filterDiv = document.createElement('div');
+    filterDiv.className = 'filter-group';
+
+    const index = ++filterIndex;
+
+    filterDiv.setAttribute('data-filter-index', index);
+
+    filterDiv.innerHTML = `
+      <div class="flex items-start gap-2 mt-3">
+        <select 
+          name="field_name_${index}" 
+          onchange="updateInputs(${index})"
+          class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+        >
+          <option value="">Select Field</option>
+          {% for field in fields %}
+            <option value="{{ field.name }}" data-type="{{ field.type }}"
+              ${fieldName === '{{ field.name }}' ? 'selected' : ''}>
+              {{ field.name }}
+            </option>
+          {% endfor %}
+        </select>
+
+        <div>
+          <!-- Dropdown Toggle Button -->
+          <button type="button" onclick="toggleOptions(${index})"
+              id="options-button-${index}" 
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+              Loading...
+          </button>
+
+          <div id="options-container-${index}" class="absolute mt-2 bg-white shadow-lg border rounded p-3 hidden z-10">
+            <div class="input-area" id="input-area-${index}">
+              <!-- Dynamic Inputs for Filter ${index} will go here -->
+            </div>
+
+            <div class="mt-3">
+              <div class="flex items-center mb-1">
+                <input type="checkbox" id="is_not_${index}" name="is_not_${index}" value="true" ${isNot ? 'checked' : ''} class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                <label for="is_not_${index}" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Not</label>
+              </div>
+              <div class="flex items-center mb-1">
+                <input type="checkbox" id="is_null_${index}" name="is_null_${index}" value="true" ${isNull ? 'checked' : ''} class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                <label for="is_null_${index}" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Null</label>
+              </div>
+              <div class="flex items-center mb-1">
+                <input type="checkbox" id="is_not_null_${index}" name="is_not_null_${index}" value="true" ${isNotNull ? 'checked' : ''} class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                <label for="is_not_null_${index}" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Not Null</label>
+              </div>
+              <div class="flex items-center mb-1">
+                <input type="checkbox" id="is_unique_${index}" name="is_unique_${index}" value="true" ${isUnique ? 'checked' : ''} class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                <label for="is_unique_${index}" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Unique</label>
+              </div>
+              <div class="flex items-center mb-1">
+                <input type="checkbox" id="is_count_${index}" name="is_count_${index}" value="true" ${isCount ? 'checked' : ''} class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"> 
+                <label for="is_count_${index}" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Count</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add Delete Button -->
+        <button 
+          type="button" 
+          onclick="deleteFilter(${index}, ${filterId})"
+          class="focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2  dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900"
+        >X</button>
+        <input type="hidden" name="filter_id_${index}" value="${filterId}">
+      </div>
+    `;
+    container.appendChild(filterDiv);
+
+    setSummaryText(index, valueStart, valueEnd, isNot, isNull, isNotNull, isUnique, isCount);
+    updateInputs(index, valueStart, valueEnd);
+  }
+
+  function updateInputs(index, valueStart = '', valueEnd = '') {
+    const selectedField = document.querySelector(`[name="field_name_${index}"]`);
+    const inputArea = document.getElementById(`input-area-${index}`);
+    const fieldType = selectedField.options[selectedField.selectedIndex].getAttribute('data-type');
+
+    let html = '';
+    if (fieldType === 'Text') {
+      html = `
+      <div>
+        <input 
+          type="text" 
+          name="value_start_${index}" 
+          placeholder="Enter value"
+          class="input-field bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
+          value="${valueStart}"
+        >
+      </div>`;
+    } else if (fieldType === 'Date') {
+      html = `
+      <div class="flex items-center">
+        <input 
+          type="date" 
+          name="value_start_${index}" 
+          class="input-field bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
+          value="${valueStart}"
+        >
+        <input 
+          type="date" 
+          name="value_end_${index}" 
+          class="input-field bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-r-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
+          value="${valueEnd}"
+        >
+      </div>`;
+    } else if (fieldType === 'Integer' || fieldType === 'Float') {
+      html = `
+      <div class="flex items-center">
+        <input 
+          type="number" 
+          name="value_start_${index}"
+          placeholder="From"
+          class="input-field w-28 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
+          value="${valueStart}"
+        >
+        <input 
+          type="number" 
+          name="value_end_${index}"
+          placeholder="To"
+          class="input-field w-28 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-r-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
+          value="${valueEnd}"
+        >
+      </div>`;
+    }
+    inputArea.innerHTML = html;
+  }
+
+  function deleteFilter(index, filterId) {
+    const filterDiv = document.querySelector(`[data-filter-index="${index}"]`);
+    
+    if (filterId) {
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+      const data = new FormData();
+      data.append('filter_id', filterId);
+      data.append('csrfmiddlewaretoken', csrfToken);
+
+      fetch("{% url 'delete_finding_filter' %}", {
+        method: 'POST',
+        body: data
+      })
+      .then(response => response.json())
+      .then(responseData => {
+        if (responseData.success) {
+          window.location.reload();
+        } else {
+          alert('Failed to delete filter');
+        }
+      });
+    } else {
+      if (filterDiv) {
+        filterDiv.remove();
+      }
+    }
+  }
+
+  function toggleOptions(index) {
+    const container = document.getElementById(`options-container-${index}`);
+    if (container.classList.contains('hidden')) {
+        container.classList.remove('hidden');
+    } else {
+        container.classList.add('hidden');
+    }
+  }
+
+  document.addEventListener('click', function (event) {
+    const dropdowns = document.querySelectorAll('[id^="options-container-"]');
+    
+    dropdowns.forEach(dropdown => {
+      if (!dropdown.contains(event.target) && 
+        !dropdown.previousElementSibling.contains(event.target)) {
+        dropdown.classList.add('hidden');
+      }
+    });
+  });
+
+</script>
+<!-- Script for new filter end -->
+
+
+<script>
+  function getComboA(selectObject) {
+    var value = selectObject.value;
+  
+    fetch('/tables/create-finding-page-items/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRFToken': '{{ csrf_token }}',
+      },
+      body: `items=${value}`
+    })
+    .then(response => {
+      location.reload()
+    })
+  }
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var selectAllCheckbox = document.getElementById('selectAll');
+    var dropdown = document.getElementById('dropdownDefaultCheckbox');
+    var cancelButton = document.querySelector('#dropdownDefaultCheckbox .cancel-button');
+    var checkboxes = document.querySelectorAll('#dropdownDefaultCheckbox input[type="checkbox"]');
+    var saveButton = document.querySelector('#dropdownDefaultCheckbox .save-button');
+
+    // Function to update "Select All" checkbox state
+    function updateSelectAllState() {
+      var validCheckboxes = Array.from(checkboxes).filter(cb => !cb.classList.contains('pre-columns') && cb.id !== 'selectAll');
+      var allChecked = validCheckboxes.every(cb => cb.checked);
+      var noneChecked = validCheckboxes.every(cb => !cb.checked);
+
+      selectAllCheckbox.checked = allChecked;
+      // selectAllCheckbox.indeterminate = !allChecked && !noneChecked;
+    }
+
+    // "Select All" functionality
+    selectAllCheckbox.addEventListener('change', function () {
+      checkboxes.forEach(function (checkbox) {
+        if (!checkbox.classList.contains('pre-columns')) {
+          checkbox.checked = selectAllCheckbox.checked;
+          var event = new Event('change');
+          checkbox.dispatchEvent(event);
+        }
+      });
+    });
+    
+    // Update "Select All" based on individual checkboxes
+    checkboxes.forEach(function (checkbox) {
+      checkbox.addEventListener('change', function () {
+        updateSelectAllState();
+      });
+    });
+
+    // Initialize checkbox visibility and add event listeners
+    checkboxes.forEach(function (checkbox) {
+      var targetColumnId = checkbox.getAttribute('data-target');
+      var targetColumn = document.getElementById('th_' + targetColumnId);
+      var exportTargetColumn = document.getElementById('th_' + targetColumnId + '_export');
+      var targetDataCells = document.querySelectorAll('.td_' + targetColumnId);
+
+      if (checkbox.checked) {
+        targetColumn.style.display = 'none';
+        exportTargetColumn.style.display = 'none';
+        targetDataCells.forEach(function (dataCell) {
+          dataCell.style.display = 'none';
+        });
+      }
+
+      checkbox.addEventListener('change', function () {
+        var targetColumnId = this.getAttribute('data-target');
+        var targetColumn = document.getElementById('th_' + targetColumnId);
+        var exportTargetColumn = document.getElementById('th_' + targetColumnId + '_export');
+        var targetDataCells = document.querySelectorAll('.td_' + targetColumnId);
+
+        if (this.checked) {
+          targetColumn.style.display = 'none';
+          exportTargetColumn.style.display = 'none';
+          targetDataCells.forEach(function (dataCell) {
+            dataCell.style.display = 'none';
+          });
+        } else {
+          targetColumn.style.display = '';
+          exportTargetColumn.style.display = '';
+          targetDataCells.forEach(function (dataCell) {
+            dataCell.style.display = '';
+          });
+        }
+      });
+    });
+
+    // Save changes to the database
+    saveButton.addEventListener('click', function () {
+      var data = [];
+
+      checkboxes.forEach(function (checkbox) {
+        if (checkbox.id !== 'selectAll') {
+          data.push({
+            key: checkbox.getAttribute('data-target'),
+            value: checkbox.checked
+          });
+        }
+      });
+
+      fetch('/tables/create-finding-hide-show-items/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: JSON.stringify(data)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.message) {
+          console.log(data.message);
+          dropdown.classList.add('hidden');
+        } else {
+          console.error(data.error || 'Something went wrong.')
+        }
+      })
+      .catch(error => console.error('Error:', error));
+    });
+
+    // Close dropdown on Cancel button click
+    cancelButton.addEventListener('click', function () {
+      dropdown.classList.add('hidden');
+    });
+
+    // Initial update for "Select All" checkbox state
+    updateSelectAllState();
+  });
+</script>
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const paginationLinks = document.querySelectorAll('.page-link');
+    
+    paginationLinks.forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        const page = link.getAttribute('data-page');
+        const params = new URLSearchParams(window.location.search);
+        params.set('page', page);
+        window.location.href = `${window.location.pathname}?${params.toString()}`;
+      });
+    });
+  });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const orderLinks = document.querySelectorAll('.order-link');
+    const storedOrderBy = localStorage.getItem('finding_order_by');
+
+    let initialLoad = true;
+
+    orderLinks.forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        const order_by = link.getAttribute('data-order');
+        localStorage.setItem('finding_order_by', order_by);
+        const params = new URLSearchParams(window.location.search);
+        params.set('order_by', order_by);
+        const newUrl = window.location.href = `${window.location.pathname}?${params.toString()}`;
+        history.replaceState(null, null, newUrl);
+      });
+    });
+
+    if (storedOrderBy && initialLoad) {
+      const params = new URLSearchParams(window.location.search);
+      params.set('order_by', storedOrderBy);
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      history.replaceState(null, null, newUrl);
+      initialLoad = false;
+
+      if( !localStorage.getItem('orderFirstLoad') ) {
+        localStorage['orderFirstLoad'] = true;
+        window.location.reload();
+      } else {
+        localStorage.removeItem('orderFirstLoad');
+      }
+    }
+
+  });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const searchForm = document.getElementById('search-form');
+    const storedSearch = localStorage.getItem('finding_search');
+
+    let initialLoad = true;
+    
+    searchForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const searchInput = document.getElementById('finding-search');
+      const search = searchInput.value;
+      localStorage.setItem('finding_search', search);
+      const params = new URLSearchParams(window.location.search);
+      params.set('search', search);
+      const newUrl = window.location.href = `${window.location.pathname}?${params.toString()}`;
+      history.replaceState(null, null, newUrl);
+    });
+
+    if (storedSearch && initialLoad) {
+      const params = new URLSearchParams(window.location.search);
+      params.set('search', storedSearch);
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      history.replaceState(null, null, newUrl);
+      initialLoad = false;
+
+
+      if( !localStorage.getItem('searchFirstLoad') ) {
+        localStorage['searchFirstLoad'] = true;
+        window.location.reload();
+      } else {
+        localStorage.removeItem('searchFirstLoad');
+      }
+
+    }
+
+  });
+
+</script>
+
+<script>
+  function toggleRotation() {
+    document.querySelectorAll('.overflow-x-auto[style], .inline-block[style]').forEach(function(element) {
+      if (element.style.transform === '') {
+        element.style.transform = 'rotateX(180deg)';
+      } else {
+        element.style.transform = '';
+      }
+    });
+  }
+  function handleClick(event) {
+    const clickedElement = event.target;
+    const isActionButton = clickedElement.closest('.action-btn');
+    const isInsideModal = clickedElement.closest('.action-modal');
+
+    if (isInsideModal) {
+      return;
+    }
+
+    if (!isActionButton) {
+      document.querySelectorAll('.overflow-x-auto[style], .inline-block[style]').forEach(function(element) {
+        element.style.transform = 'rotateX(180deg)';
+      })
+    } else {
+      document.querySelectorAll('.overflow-x-auto[style], .inline-block[style]').forEach(function(element) {
+        element.style.transform = '';
+      })
+    }
+
+    const updateButtons = document.querySelectorAll('.rotate-toggle-button');
+
+    updateButtons.forEach(function(button) {
+      button.addEventListener('click', function() {
+        document.querySelectorAll('.overflow-x-auto[style], .inline-block[style]').forEach(function(element) {
+          element.style.transform = 'rotateX(180deg)';
+        })
+      });
+    });
+  }
+  document.addEventListener('click', handleClick);
+</script>
+
+<script>
+  var selectElement = document.getElementById('action_status');
+
+  selectElement.addEventListener('change', function() {
+    var selectedValue = selectElement.value;
+    const params = new URLSearchParams(window.location.search);
+    params.set('action_status', selectedValue);
+    const newUrl = window.location.href = `${window.location.pathname}?${params.toString()}`;
+    history.replaceState(null, null, newUrl);
+
+  });
+
+</script>
+
+<script>
+  function updateSubItems() {
+    const parentId = document.getElementById("id_companies").value;
+    const itgcCategoriesContainer = document.getElementById("itgc_categories_container");
+    const itgcCategoriesSelect = document.getElementById("id_itgc_categories");
+    const itgcQuestionsContainer = document.getElementById("itgc_questions_container");
+
+    const itgcCategories = "{{ software.itgc_categories }}"; // Assuming the default selected category
+
+    if (parentId) {
+      // Show ITGC categories container
+      itgcCategoriesContainer.classList.remove("hidden");
+      itgcQuestionsContainer.classList.remove("hidden");
+      // Clear and populate itgc_categories dropdown
+      itgcCategoriesSelect.innerHTML = '<option value="">Select a category</option>';
+      fetch(`/tables/get-sub-items/${parentId}/`) // Fetch ITGC categories
+        .then(response => response.json())
+        .then(data => {
+          data.sub_items.forEach(item => {
+            const option = document.createElement("option");
+            option.value = item.id;
+            option.textContent = item.title;
+            
+            if (itgcCategories === item.title) {
+              option.selected = true;
+            }
+
+            itgcCategoriesSelect.appendChild(option);
+          });
+                  updateQuestions();
+        })
+        .catch(error => console.error("Error fetching ITGC categories:", error));
+
+      // Hide the questions dropdown initially, we'll show it after selecting a category
+      itgcQuestionsContainer.classList.add("hidden");
+
+    } else {
+      // Hide both categories and questions containers if no company is selected
+      itgcCategoriesContainer.classList.add("hidden");
+      itgcQuestionsContainer.classList.add("hidden");
+    }
+  }
+
+  function updateQuestions() {
+    const categoryId = document.getElementById("id_itgc_categories").value;
+    const itgcQuestionsContainer = document.getElementById("itgc_questions_container");
+    const itgcQuestionsSelect = document.getElementById("id_itgc_questions");
+    const itgcQuestions = "{{ software.itgc_questions }}"; // Assuming this value is available similarly
+
+    if (categoryId) {
+      // Show ITGC questions container
+      itgcQuestionsContainer.classList.remove("hidden");
+
+      // Clear and populate itgc_questions dropdown based on selected category
+      itgcQuestionsSelect.innerHTML = '<option value="">Select question</option>';
+      fetch(`/tables/get-sub-items/${categoryId}/`) // Fetch ITGC questions for the selected category
+        .then(response => response.json())
+        .then(data => {
+          data.sub_items.forEach(item => {
+            const option = document.createElement("option");
+            option.value = item.id;
+            option.textContent = item.title;
+            
+            if (itgcQuestions === item.title) {
+              option.selected = true;
+            }
+
+            itgcQuestionsSelect.appendChild(option);
+          });
+        })
+        .catch(error => console.error("Error fetching ITGC questions:", error));
+
+    } else {
+      // Hide the questions dropdown if no category is selected
+      itgcQuestionsContainer.classList.add("hidden");
+    }
+  }
+
+  document.getElementById("id_companies").addEventListener("change", updateSubItems);
+  document.getElementById("id_itgc_categories").addEventListener("change", updateQuestions);
+
+  document.addEventListener("DOMContentLoaded", () => {
+    updateSubItems(); // Populate categories and questions on page load if needed
+  });
+</script>
+
+<script>
+  // JavaScript for Real-Time Search
+  document.getElementById('searchInput').addEventListener('input', function () {
+    const searchQuery = this.value.toLowerCase();
+    const listItems = Array.from(document.querySelectorAll('#dropdownList li')).filter(
+      item => item.id !== 'selectAllParent' && !item.classList.contains('pre-columns-parent')
+    );
+
+    listItems.forEach(item => {
+      const label = item.querySelector('label').textContent.toLowerCase();
+      if (label.includes(searchQuery)) {
+        item.classList.remove('hidden');
+      } else {
+        item.classList.add('hidden');
+      }
+    });
+  });
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll('.copy-url').forEach((button) => {
+      button.addEventListener('click', () => {
+        const id = button.getAttribute('data-id');
+        const url = `{{ finding_url }}?finding_id=${id}`;
+
+        const textArea = document.createElement('textarea');
+        textArea.value = url;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+
+        alert('URL copied to clipboard');
+      });
+    });
+  });
+
+</script>
+
+
+<script src="{% static "dist/js/jquery-2.2.4.min.js" %}"></script>
+<script src="{% static "dist/js/jquery.multi-select.min.js" %}"></script>
+
+<script>
+  $('#id_action_to').multiSelect({
+    'noneText': 'Select action to'
+  });
+</script>
+
+
+{% endblock extra_js %}

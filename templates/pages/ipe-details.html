@@ -1,0 +1,50 @@
+{% extends "layouts/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="p-5">
+    <!-- Main Heading -->
+    <h1 class="text-lg font-bold text-center" style="color: white; background-color: #033d6d;  border-top-right-radius: 5px; border-top-left-radius: 5px;">TEST OF IMPLEMENTATION (TOI)</h1>
+    <h2 class="text-lg font-bold text-center" style="color: white; background-color: #0078D7;">IPE</h2>
+    <div class="mt-5">
+        {% if ipe_qs %}
+        <a href="{% url 'export_ipe_description' ipe_qs.0.id %}" class="py-2.5 px-5 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">Export</a>
+        {% endif %}
+        
+        <!-- Results Section -->
+        <div class="w-full p-3 border border-gray-200 relative overflow-x-auto mt-5" style="background-color: #F9FAFB; border-bottom-right-radius: 5px;">
+            <table class="table-auto w-full border-collapse border border-gray-300">
+                <thead>
+                    <tr class="bg-gray-100">
+                        <th class="border border-gray-300 px-4 py-2 text-left">Procedures</th>
+                        <th class="border border-gray-300 px-4 py-2 text-left">Results</th>
+                        <th class="border border-gray-300 px-4 py-2 text-left">Evidence</th>
+                    </tr>
+                </thead>
+                <tbody style="border-bottom-left-radius: 5px; border-bottom: 2px solid #0078D7;">
+                    {% for ipe in ipe_qs %}
+                        {% for key, value in ipe.get_description_dict.items %}
+                        <tr>
+                            <td class="border border-gray-300 px-4 py-2">{{ key }}</td>
+                            <td class="border border-gray-300 px-4 py-2">{{ value|linebreaksbr }}</td>
+                            {% if forloop.first %}
+                            <td class="border border-gray-300 px-4 py-2" rowspan="{{ ipe.get_description_dict|length }}">
+                                <a class="text-blue-500" href="{{ request.GET.path }}">Evidence ({{ full_url }})</a>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                        <!-- Separator Row -->
+                        <tr>
+                            <td colspan="3" class="text-center" style="background-color: #0078D7; height: 5px;"></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>               
+            </table>
+        </div>
+        
+    </div>
+
+</div>
+
+{% endblock content %}

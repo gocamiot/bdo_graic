@@ -1,0 +1,23 @@
+{% extends "layouts/base-auth.html" %}
+{% load static get_attribute %}
+
+
+{% block content %}
+
+<section class="bg-white dark:bg-gray-900">
+    <a href="{% url "index" %}" class="inline-flex items-center gap-2 p-5 font-bold">
+        <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12l4-4m-4 4 4 4"/>
+        </svg>          
+        Back to GRC Server Home
+    </a>
+    <div class="h-screen flex justify-center items-center">
+        <div class="mx-auto w-full text-center">
+            <h1 class="mb-8 text-7xl tracking-tight font-extrabold lg:text-9xl text-primary-600 dark:text-primary-500">Oops!</h1>
+            <p class="mb-8 text-3xl tracking-tight font-bold text-gray-900 md:text-4xl dark:text-white">The page you're looking for is not ready yet!</p>
+            <a href="{% if request.GET.view_name|url_has_pattern %}{% url request.GET.view_name %}{% else %}{% url "join_view_404" %}?view_name={{request.GET.view_name}}{% endif %}" class="py-2.5 px-5 me-2 mb-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">Try again!</a>
+        </div>   
+    </div>
+</section>
+
+{% endblock content %}

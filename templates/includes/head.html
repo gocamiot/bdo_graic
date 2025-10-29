@@ -1,0 +1,33 @@
+{% load static %}
+
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>GRC Server</title>
+
+<meta name="description"
+  content="GRC Server - Custom Development Solution">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+  rel="stylesheet">
+
+<link rel="apple-touch-icon" sizes="180x180" href="{% static "dist/images/grc_picture2.png" %}">
+<link rel="icon" type="image/png" sizes="32x32" href="{% static "dist/images/grc_picture2.png" %}">
+<link rel="icon" type="image/png" sizes="16x16" href="{% static "dist/images/grc_picture2.png" %}">
+<link rel="icon" type="image/png" href="{% static "dist/images/grc_picture2.png" %}">
+<meta name="msapplication-TileColor" content="#ffffff">
+<meta name="theme-color" content="#ffffff">
+
+<link rel="stylesheet" href="{% static 'dist/main.css' %}">
+
+<script>
+
+  if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark')
+  }
+</script>

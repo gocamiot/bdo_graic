@@ -1,0 +1,69 @@
+# Core
+django==4.2
+python-dotenv==1.0.0
+
+# Deployment
+whitenoise==6.5.0
+gunicorn==21.2.0
+django-debug-toolbar==4.2.0
+
+# DB Layer
+# psycopg2-binary==3.1.12
+# mysqlclient==2.2.0
+
+# Async
+#hiredis==2.2.3
+
+# Tooling
+django-allauth==0.58.1
+stripe==4.2.0
+django-api-generator==1.0.17
+drf-spectacular==0.26.5
+sentry-sdk==1.32.0
+# pandas==2.0.3
+Pillow==10.0.1
+reportlab==4.0.6
+
+# psycopg2-binary
+# mysqlclient
+
+#loader
+django-background-tasks-updated==1.2.7
+pytz
+
+#New
+psycopg2-binary==2.9.9
+
+pdfplumber
+
+celery==5.4.0
+redis==5.0.8
+django-quill-editor==0.1.42
+
+pyodbc
+
+psutil
+pytesseract==0.3.13
+htmldocx==0.0.6
+django-celery-beat==2.7.0
+django-celery-results==2.5.1
+django-autoslug==1.9.9
+markdown2
+openai
+
+pandas
+openpyxl
+rapidfuzz
+python-Levenshtein
+jellyfish 
+fuzzywuzzy
+django-import-export
+pgvector
+sentence-transformers
+yake
+html2text
+
+# spacy
+
+git+https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/gocamiot/loader.git@latestAI01
+git+https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/gocamiot/comms.git
