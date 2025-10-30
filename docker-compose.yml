@@ -115,7 +115,7 @@ services:
     build:
       context: ./nginx
     ports:
-      - "8005:80"
+      - "86:80"
     env_file:
       - ./.env
     volumes:
