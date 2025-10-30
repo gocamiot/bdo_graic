@@ -36,8 +36,8 @@ if not SECRET_KEY:
 DEBUG = strtobool(os.getenv('DEBUG', "False"))
 
 # Hosts Settings
-ALLOWED_HOSTS = ['localhost', '23.227.187.230', '127.0.0.1']
-CSRF_TRUSTED_ORIGINS = ['http://23.227.187.230/',]
+ALLOWED_HOSTS = ['localhost', '192.168.100.151', '127.0.0.1']
+CSRF_TRUSTED_ORIGINS = ['http://192.168.100.151:82',]
 
 # Used by DEBUG-Toolbar
 INTERNAL_IPS = [
@@ -441,7 +441,7 @@ QUILL_CONFIGS = {
 }
 MODELS_APP_LABEL='tables'
 
-SITE_URL = os.getenv('SITE_URL', 'http://23.227.187.230/')
+SITE_URL = os.getenv('SITE_URL', 'http://192.168.100.151:86')
 
 MAP_FIELD_NAMES = {
     'companies': 'itgc_focus_area',
