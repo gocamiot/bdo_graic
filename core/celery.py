@@ -20,4 +20,8 @@ app.conf.beat_schedule = {
         'task': 'apps.tables.tasks.send_open_status_emails',
         'schedule': crontab(hour=6, minute=0),
     },
+    "generate_missing_hashes_every_5_minutes": {
+        "task": "loader.models.generate_missing_hashes",
+        "schedule": 300.0,
+    },
 }

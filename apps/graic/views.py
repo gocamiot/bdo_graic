@@ -642,12 +642,12 @@ def process_excel_with_sequences(request, input_path: str, output_path: str, cha
     wb = load_workbook(input_path)
 
     sequences_to_process = []
+
     for sheet in wb.worksheets:
         for row in sheet.iter_rows():
             for cell in row:
                 if not isinstance(cell.value, str):
                     continue
-
                 for match in GRAIC_SEQUENCE_PATTERN.finditer(cell.value):
                     seq_num = int(match.group(1))
                     new_chat_flag = match.group(2) or "N"
@@ -662,6 +662,7 @@ def process_excel_with_sequences(request, input_path: str, output_path: str, cha
                     })
 
     sequences_to_process.sort(key=lambda x: x["seq"])
+
     previous_prompt = ""
     previous_response = ""
 
@@ -670,27 +671,30 @@ def process_excel_with_sequences(request, input_path: str, output_path: str, cha
         cell = seq_info["cell"]
         row_index = cell.row
         col_index = cell.column
+        col_letter = get_column_letter(col_index)
+        cell_ref = f"{col_letter}{row_index}"
+
         prompt_text = seq_info["prompt"]
         new_chat = seq_info["new_chat"]
         full_match = seq_info["full_match"]
 
-        print(f"🧠 Running sequence {seq_info['seq']} with prompt:\n{prompt_text}\n")
+        print(f"🧠 Running sequence {seq_info['seq']} ({sheet.title}:{cell_ref})\nPrompt:\n{prompt_text}\n")
 
         agent = pick_agent_with_llm(prompt_text)
         print(f"→ Selected agent: {agent}")
 
         if agent == 'file_agent':
-            generated_html = file_process(request, default_value, chat_id, agent, prompt=prompt_text,
-                                          previous_response=previous_response, previous_prompt=previous_prompt,
-                                          new_chat=new_chat)
+            generated_html = file_process(request, default_value, chat_id, agent,
+                                          prompt=prompt_text, previous_response=previous_response,
+                                          previous_prompt=previous_prompt, new_chat=new_chat)
         elif agent == 'sql_agent':
-            generated_html = sql_process(request, default_value, chat_id, agent, prompt=prompt_text,
-                                         previous_response=previous_response, previous_prompt=previous_prompt,
-                                         new_chat=new_chat)
+            generated_html = sql_process(request, default_value, chat_id, agent,
+                                         prompt=prompt_text, previous_response=previous_response,
+                                         previous_prompt=previous_prompt, new_chat=new_chat)
         else:
-            generated_html = dt_process(request, default_value, chat_id, agent, prompt=prompt_text,
-                                        previous_response=previous_response, previous_prompt=previous_prompt,
-                                        new_chat=new_chat)
+            generated_html = dt_process(request, default_value, chat_id, agent,
+                                        prompt=prompt_text, previous_response=previous_response,
+                                        previous_prompt=previous_prompt, new_chat=new_chat)
 
         previous_response = generated_html
         previous_prompt = prompt_text
@@ -699,16 +703,23 @@ def process_excel_with_sequences(request, input_path: str, output_path: str, cha
         is_table, parsed_data = parse_html_response(generated_html)
 
         if is_table:
-            cell.value = None
+            output_sheet_name = f"{sheet.title} ({cell_ref})"
+            if len(output_sheet_name) > 31:
+                output_sheet_name = output_sheet_name[:28] + "..."
+            if output_sheet_name in wb.sheetnames:
+                del wb[output_sheet_name]
+            output_sheet = wb.create_sheet(output_sheet_name)
 
-            insert_at = row_index
+            output_sheet.append([f"Prompt from {sheet.title}!{cell_ref}"])
+            output_sheet.append([prompt_text])
+            output_sheet.append([])
             for table in parsed_data:
                 for r in table:
-                    insert_at += 1
-                    sheet.insert_rows(insert_at)
-                    for c_idx, val in enumerate(r, start=col_index):
-                        sheet[f"{get_column_letter(c_idx)}{insert_at}"].value = val
-                insert_at += 1
+                    output_sheet.append(r)
+                output_sheet.append([])
+
+            cell.value = cell.value.replace(full_match, f"See output sheet - {output_sheet_name}")
+
         else:
             cell.value = cell.value.replace(full_match, generated_html)
 
