@@ -256,6 +256,7 @@ def add_to_tab(request, model_name, model_choice):
             content_type=content_type,
             model_choices=model_choice,
             search=request.POST.get('search_fields'),
+            search_mode=request.POST.get('search_mode'),
             pre_columns=request.POST.get('pre_columns'),
             pre_filters=request.POST.get('pre_filters'),
             base_view=base_view,
@@ -499,8 +500,15 @@ def tab_details(request, id):
         tab.updated_at = timezone.now()
         tab.save()
 
+    if request.GET.get('mode'):
+        tab.search_mode = request.GET.get('mode')
+        tab.updated_at = timezone.now()
+        tab.save()
+
     base_queryset = tab_model.objects.filter(combined_q_objects).filter(**filter_string).filter(**snapshot_filter).filter(**pre_filters)
-    order_by = request.GET.get('order_by', 'pk')
+    order_by = tab.order_by
+    if 'similarity' in order_by:
+        order_by = 'pk'
     queryset = base_queryset
     if hasattr(tab_model, 'parent'):
         queryset = queryset.filter(parent=None)
@@ -551,7 +559,11 @@ def tab_details(request, id):
             )
         ).order_by('order_priority')
 
-    tab_list = software_filter(request, queryset, ordered_fields)
+    tab_list = software_filter(request, queryset, ordered_fields, search_value=tab.search, search_mode=tab.search_mode)
+    mode = tab.search_mode
+    if mode and mode == "graic" and tab_list:
+        if 'similarity' not in ordered_fields:
+            ordered_fields.insert(0, 'similarity')
     row_count_to_ipe(request, tab, tab_list.count())
 
     page = request.GET.get('page', 1)
@@ -720,6 +732,8 @@ def export_tab_csv_view(request, id):
 
     base_queryset = tab_model.objects.filter(**filter_string).filter(**snapshot_filter).filter(combined_q_objects).filter(**pre_filters)
     order_by = request.GET.get('order_by', 'pk')
+    if 'similarity' in order_by:
+        order_by = 'pk'
     queryset = base_queryset
 
     if user_query_conditions:
@@ -757,7 +771,11 @@ def export_tab_csv_view(request, id):
     if float_unique_filter:
         queryset = common_unique_filter(request, float_unique_filter, queryset, snapshot_filter, table_name)
 
-    tab_list = software_filter(request, queryset, ordered_fields)
+    tab_list = software_filter(request, queryset, ordered_fields, search_value=tab.search, search_mode=tab.search_mode)
+    mode = tab.search_mode
+    if mode and mode == "graic" and tab_list:
+        if 'similarity' not in ordered_fields:
+            ordered_fields.insert(0, 'similarity')
 
     if 'selected_rows' in request.GET:
         tab_list = tab_list.filter(pk__in=selected_rows)
@@ -871,6 +889,8 @@ class ExportTabExcelView(View):
         base_queryset = tab_model.objects.filter(**filter_string).filter(**snapshot_filter)\
                                          .filter(combined_q_objects).filter(**pre_filters)
         order_by = request.GET.get('order_by', 'pk')
+        if 'similarity' in order_by:
+            order_by = 'pk'
         queryset = base_queryset
 
         if user_query_conditions:
@@ -909,7 +929,11 @@ class ExportTabExcelView(View):
         if float_unique_filter:
             queryset = common_unique_filter(request, float_unique_filter, queryset, snapshot_filter, table_name)
 
-        tab_list = software_filter(request, queryset, ordered_fields)
+        tab_list = software_filter(request, queryset, ordered_fields, search_value=tab.search, search_mode=tab.search_mode)
+        mode = tab.search_mode
+        if mode and mode == "graic" and tab_list:
+            if 'similarity' not in ordered_fields:
+                ordered_fields.insert(0, 'similarity')
 
         if 'selected_rows' in request.GET:
             tab_list = tab_list.filter(pk__in=selected_rows)

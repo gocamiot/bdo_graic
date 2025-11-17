@@ -235,6 +235,7 @@ class Tab(models.Model):
     saved_filters = models.ManyToManyField('common.SavedFilter', blank=True)
     # search_items = models.JSONField(null=True, blank=True)
     search = models.CharField(max_length=255, null=True, blank=True)
+    search_mode = models.CharField(max_length=255, null=True, blank=True)
     order_by = models.CharField(max_length=255, null=True, blank=True)
     snapshot = models.CharField(max_length=255, null=True, blank=True)
     query_snapshot = models.CharField(max_length=255, null=True, blank=True)

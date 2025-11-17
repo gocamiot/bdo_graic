@@ -146,21 +146,34 @@
       </div>
       <div class="items-center justify-between block sm:flex dark:divide-gray-700">
         <div class="flex items-center mb-4 sm:mb-0">
-          <form class="sm:pr-3 flex itmes-center gap-2" id="search-form" method="GET">
+          <form class="sm:pr-3 flex itmes-center gap-2" method="GET">
             <div>
-              <label for="device-search" class="sr-only">Search</label>
+              <label for="tab-details-search" class="sr-only">Search</label>
               <div class="relative w-48 sm:w-64 xl:w-96">
-                <input type="text" name="search" id="device-search"
+                <input type="text" name="search" value="{{ request.GET.search }}" id="tab-details-search"
                   class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
-                  placeholder="Search for devices">
+                  placeholder="Global search">
               </div>
             </div>
-            <div>
-              <button type="submit" class="inline-flex items-center justify-center w-1/2 px-3 py-2.5 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+            <div class="flex items-center gap-2">
+              <button type="submit" name="mode" value="normal" data-tooltip-target="general-search" data-tooltip-placement="bottom"
+                class="inline-flex items-center justify-center w-1/2 px-3 py-2.5 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
                 <svg class="w-5 h-5 text-white dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
                   <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
                 </svg>
               </button>
+              <div id="general-search" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+                General search
+                <div class="tooltip-arrow" data-popper-arrow></div>
+              </div>
+              <button type="submit" name="mode" value="graic" data-tooltip-target="graic-search" data-tooltip-placement="bottom"
+                class="inline-flex items-center justify-center w-1/2 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+                <img src="{% static "dist/img/graic.jpg" %}" style="width: 44px; height: 40px;" class="rounded-lg" alt="">  
+              </button>
+              <div id="graic-search" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+                Search by grAIc
+                <div class="tooltip-arrow" data-popper-arrow></div>
+              </div>
             </div>
           </form>
         </div>
