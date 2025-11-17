@@ -537,6 +537,8 @@ def tab_details(request, id):
     else:
         if order_by in ['count', '-count']:
             order_by = 'pk'
+    
+    order_by = order_by or 'pk'
 
     queryset = queryset.order_by(order_by)
 

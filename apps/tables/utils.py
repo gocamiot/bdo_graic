@@ -50,9 +50,10 @@ def device_filter(request, queryset, fields):
 
 from apps.graic.utils import search_model_fts, search_model_vector, extract_keywords
 
-def software_filter(request, queryset, fields):
-    value = request.GET.get('search')
-    mode = request.GET.get('mode')
+def software_filter(request, queryset, fields, search_value="", search_mode=""):
+    value = search_value or request.GET.get('search')
+    mode = search_mode or request.GET.get('mode')
+    
     default_value = DefaultValues.objects.first()
     if not default_value:
         DefaultValues.objects.create()
