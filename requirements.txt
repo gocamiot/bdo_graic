@@ -65,5 +65,5 @@ html2text
 
 # spacy
 
-git+https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/gocamiot/loader.git@latestAI01
+git+https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/gocamiot/loader.git
 git+https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/gocamiot/comms.git
