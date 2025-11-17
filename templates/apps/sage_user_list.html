@@ -33,7 +33,7 @@
           {% for tab in tabs %}
             <li class="me-2">
               <div class="flex items-center gap-5 {% if tab.id|stringformat:"s" in request.path %} inline-block p-4 rounded-t-lg text-blue-600 bg-gray-100 active dark:bg-gray-600 dark:text-white {% else %} inline-block p-4 rounded-t-lg hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-gray-300 {% endif %}">
-                <a href="{% url "tab_details" tab.id %}{% if tab.order_by %}?order_by={{tab.order_by}}{% endif %}" aria-current="page" class="">{{ tab.name }}</a>
+                <a href="{% url "tab_details" tab.id %}" aria-current="page" class="">{{ tab.name }}</a>
                 <a 
                   data-modal-target="remove-tab-{{tab.id}}" 
                   data-modal-toggle="remove-tab-{{tab.id}}"
@@ -994,7 +994,7 @@
             <form action="{% url "add_to_tab" model_name='SAGEUserList' model_choice='SAGE_USER_LIST' %}" method="post" class="p-4 md:p-5">
               {% csrf_token %}
 
-              <input type="hidden" name="search_fields" value="{{ request.GET.search }}" >
+              <input type="hidden" name="search_mode" value="{{ request.GET.mode }}" >
               <input type="hidden" name="order_by" value="{{ request.GET.order_by }}" >
               <input type="hidden" name="snapshot" value="{{ request.GET.snapshot }}">
               <input type="hidden" name="pre_columns" value="{{ pre_column }}">
