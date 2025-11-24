@@ -45,6 +45,7 @@ urlpatterns = [
     path('loader/', include('loader.urls')),
 
     path("tables/", include("apps.tables.tab.tab_urls")),
+    path("tables/", include("apps.tables.charts.charts_urls")),
     path("tables/", include("apps.tables.finding.finding_urls")),
     path("tables/", include("apps.tables.finding_attachment.finding_attachment_urls")),
 

@@ -319,9 +319,10 @@ def dt_process(request, default_value, chat_id, agent="summary_agent", prompt=""
                         {field_list},
                         ROUND(1 - (t.hash_data <=> q.v)::numeric, 3) AS similarity
                     FROM public."{table_name}" t, q
+                    WHERE t.loader_instance IS NOT NULL
                 """
                 if snapshot_value:
-                    query += f" WHERE loader_instance={snapshot_value}"
+                    query += f" AND t.loader_instance = {snapshot_value}"
 
                 query += " ORDER BY t.hash_data <=> q.v;"
 

@@ -14,6 +14,7 @@ from django.contrib.admin.models import LogEntry
 from django_quill.fields import QuillField
 from PIL import Image as PILImage
 from django.contrib.postgres.search import SearchVectorField
+from django.core.exceptions import ValidationError
 
 try:
     from pgvector.django import VectorField
@@ -263,6 +264,44 @@ class TabNotes(models.Model):
     note = QuillField(null=True, blank=True)
     created_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(null=True, blank=True)
+
+
+class BaseCharts(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    base_view = models.TextField()
+    content_type = models.ForeignKey(
+        ContentType,
+        on_delete=models.CASCADE,
+        null=True
+    )
+    name = models.TextField(max_length=255, default="Charts")
+    created_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('base_view', 'name')
+
+
+class ChartType(models.TextChoices):
+    BAR = 'BAR', 'Bar Chart'
+    LINE = 'LINE', 'Line Chart'
+    PIE = 'PIE', 'Pie Chart'
+
+class TabCharts(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    base_chart = models.ForeignKey(BaseCharts, on_delete=models.CASCADE)
+    parent_tab = models.ForeignKey(Tab, on_delete=models.CASCADE)
+    name = models.TextField(max_length=255)
+    x_field = models.CharField(max_length=100)
+    y_field = models.CharField(max_length=100, null=True, blank=True)
+    chart_type = models.CharField(max_length=20, choices=ChartType.choices, default=ChartType.BAR)
+    info = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
+
+    def clean(self):
+        if self.x_field == self.y_field:
+            raise ValidationError("x_field and y_field cannot be the same.")
 
 class EmailActionStatus(models.TextChoices):
     OPEN = 'OPEN', 'Open'

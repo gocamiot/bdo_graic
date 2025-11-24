@@ -24,7 +24,8 @@ from apps.tables.models import (
     FloatRangeFilter, 
     ModelChoices, 
     ChangeRequests,
-    Tab, SelectedRows
+    Tab, SelectedRows,
+    BaseCharts
 )
 from home.models import ColumnOrder
 from apps.common.models import SavedFilter, FieldType
@@ -248,6 +249,7 @@ def change_requests(request):
         'fields': fields,
         'saved_filters': saved_filters_json,
         'tabs': Tab.objects.filter(base_view='change_requests').order_by('created_at'),
+        'charts': BaseCharts.objects.filter(base_view='change_requests'),
         'join_model_instance': ChangeRequests.join_model_instance if hasattr( ChangeRequests, 'join_model_instance') else None,
         'selected_rows': selected_rows,
         'selected_rows_qs': software_list.filter(ID__in=selected_rows),
