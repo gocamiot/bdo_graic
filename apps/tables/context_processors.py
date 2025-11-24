@@ -1,5 +1,5 @@
 from datetime import datetime
-from apps.tables.models import DocumentStatus, DocumentType, DocumentType_GR
+from apps.tables.models import DocumentStatus, DocumentType, DocumentType_GR, ChartType
 from apps.common.models import Sidebar
 from loader.models import DynamicQuery, SAPApi
 from django.contrib.auth.models import Group
@@ -70,5 +70,6 @@ def dt_context(request):
         'py_functions': PyFunction.objects.all(),
         'default_value': DefaultValues.objects.first(),
         'greeting': greeting,
-        'chats': chats
+        'chats': chats,
+        'charts_type': ChartType.choices
     }

@@ -13,7 +13,8 @@ from apps.tables.utils import (
 )
 from apps.tables.models import (
     PageItems, HideShowFilter,  ModelChoices, 
-    Tab, ActionStatus, SelectedRows, TabNotes
+    Tab, ActionStatus, SelectedRows, TabNotes,
+    BaseCharts
 )
 from django.http import HttpResponse
 from django.urls import reverse
@@ -21,7 +22,6 @@ from django.http import JsonResponse
 from datetime import datetime, timedelta
 from django.utils import timezone
 from loader.models import InstantUpload
-from django.contrib.contenttypes.models import ContentType
 from dateutil.parser import isoparse
 from apps.common.models import SavedFilter
 from django.contrib import messages
@@ -499,7 +499,7 @@ def tab_details(request, id):
         tab.order_by = request.GET.get('order_by')
         tab.updated_at = timezone.now()
         tab.save()
-
+    
     if request.GET.get('mode'):
         tab.search_mode = request.GET.get('mode')
         tab.updated_at = timezone.now()
@@ -509,6 +509,7 @@ def tab_details(request, id):
     order_by = tab.order_by
     if 'similarity' in order_by:
         order_by = 'pk'
+
     queryset = base_queryset
     if hasattr(tab_model, 'parent'):
         queryset = queryset.filter(parent=None)
@@ -537,9 +538,8 @@ def tab_details(request, id):
     else:
         if order_by in ['count', '-count']:
             order_by = 'pk'
-    
-    order_by = order_by or 'pk'
 
+    order_by = order_by or 'pk'
     queryset = queryset.order_by(order_by)
 
     table_name = f"{tab.content_type.app_label}_{tab.content_type.model}"
@@ -566,6 +566,7 @@ def tab_details(request, id):
     if mode and mode == "graic" and tab_list:
         if 'similarity' not in ordered_fields:
             ordered_fields.insert(0, 'similarity')
+
     row_count_to_ipe(request, tab, tab_list.count())
 
     page = request.GET.get('page', 1)
@@ -594,6 +595,15 @@ def tab_details(request, id):
     label_to_value = {label: value for value, label in ModelChoices.choices}
     s_model_choice = label_to_value.get(tab_model.__name__)
 
+    y_fields = tab_model.integer_fields + tab_model.float_fields
+    if 'count' in db_field_names:
+        y_fields.append('count')
+
+    x_fields = [
+        f for f in db_field_names 
+        if f not in tab_model.integer_fields + tab_model.float_fields + (['count'] if 'count' in db_field_names else []) + ['ID', 'loader_instance', 'json_data', 'hash_data', 'fts']
+    ]
+
     context = {
         'tab': tab,
         'segment': tab.base_view,
@@ -615,7 +625,8 @@ def tab_details(request, id):
         'fields': fields,
         'saved_filters': saved_filters_json,
         'saved_filters_len': len(saved_filters),
-        'tabs': Tab.objects.filter(base_view=tab.base_view).order_by('created_at').order_by('created_at'),
+        'tabs': Tab.objects.filter(base_view=tab.base_view).order_by('created_at'),
+        'charts': BaseCharts.objects.filter(base_view=tab.base_view),
         'unique_filter': list(set(user_unique_filter + date_unique_filter + int_unique_filter + float_unique_filter)),
         'table_name': tab.content_type.model,
         'selected_rows': selected_rows,
@@ -623,7 +634,9 @@ def tab_details(request, id):
         'model_name': tab_model.__name__,
         's_model_choice': s_model_choice,
         'tab_notes': tab_notes,
-        'notes_form': TabNotesForm(initial={'notes': tab_notes.note})
+        'notes_form': TabNotesForm(initial={'notes': tab_notes.note}),
+        'y_fields': y_fields,
+        'x_fields': x_fields
     }
     return render(request, 'apps/tab/tab_details.html', context)
 
@@ -736,6 +749,7 @@ def export_tab_csv_view(request, id):
     order_by = request.GET.get('order_by', 'pk')
     if 'similarity' in order_by:
         order_by = 'pk'
+
     queryset = base_queryset
 
     if user_query_conditions:
@@ -893,6 +907,7 @@ class ExportTabExcelView(View):
         order_by = request.GET.get('order_by', 'pk')
         if 'similarity' in order_by:
             order_by = 'pk'
+
         queryset = base_queryset
 
         if user_query_conditions:

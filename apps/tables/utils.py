@@ -53,7 +53,7 @@ from apps.graic.utils import search_model_fts, search_model_vector, extract_keyw
 def software_filter(request, queryset, fields, search_value="", search_mode=""):
     value = search_value or request.GET.get('search')
     mode = search_mode or request.GET.get('mode')
-    
+
     default_value = DefaultValues.objects.first()
     if not default_value:
         DefaultValues.objects.create()
@@ -99,9 +99,10 @@ def software_filter(request, queryset, fields, search_value="", search_mode=""):
                     {field_list},
                     ROUND((t.hash_data <=> q.v)::numeric, 3) AS l2_distance
                 FROM public."{table_name}" t, q
+                WHERE t.loader_instance IS NOT NULL
             """
             if snapshot_value:
-                query += f" WHERE loader_instance={snapshot_value}"
+                query += f" WHERE t.loader_instance={snapshot_value}"
 
             query += " ORDER BY t.hash_data <=> q.v;"
 
