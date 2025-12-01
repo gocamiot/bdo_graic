@@ -1579,6 +1579,28 @@ def load_data_to_join_model(request, model_name, pk):
 
     return redirect(request.META.get('HTTP_REFERER'))
 
+# New
+
+from home.tasks import async_load_data_to_join_model
+
+def load_data_to_join_model(request, model_name, pk):
+
+    if request.method != 'POST':
+        return redirect(request.META.get('HTTP_REFERER'))
+
+    params = request.POST.dict()
+    params["fields_to_pass"] = request.POST.getlist("fields_to_pass")
+	params['referer'] = request.META.get('HTTP_REFERER', request.path)
+
+    task = async_load_data_to_join_model.delay(
+        model_name=model_name,
+        pk=pk,
+        params=params
+    )
+
+    return redirect(request.META.get('HTTP_REFERER'))
+
+########
 
 def join_view_404(request):
     return render(request, 'pages/join_view_404.html')
