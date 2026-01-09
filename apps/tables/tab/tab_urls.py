@@ -7,6 +7,7 @@ urlpatterns = [
     path('add-tab-from-tab/<str:tab_id>/', views.add_tab_from_tab, name="add_tab_from_tab"),
     path('tab/<str:id>/', views.tab_details, name="tab_details"),
     path('remove-tab/<str:id>/', views.remove_tab, name="remove_tab"),
+    path("get-axis-fields/<str:tab_id>", views.get_axis_fields, name="get_axis_fields"),
     path('create-tab-filter/<str:tab_id>/', views.create_tab_filter, name="create_tab_filter"),
     path('remove-tab-filter/', views.delete_tab_filter, name="delete_tab_filter"),
 

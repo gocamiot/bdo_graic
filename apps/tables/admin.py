@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import (
     TableDropdownItem, TableDropdownSubItem, HideShowFilter, DynamicQuery, 
     ExternalDatabase, TemporaryTable, ExportDB, ExportLog, Finding,
-    Image, ImageLoader, FindingAction, Tab, BaseCharts, TabCharts
+    Image, ImageLoader, FindingAction, Tab, BaseCharts, TabCharts, ScheduledChartExport
 )
 
 # Register your models here.
@@ -59,3 +59,4 @@ admin.site.register(ImageLoader)
 admin.site.register(Tab)
 admin.site.register(BaseCharts)
 admin.site.register(TabCharts)
+admin.site.register(ScheduledChartExport)

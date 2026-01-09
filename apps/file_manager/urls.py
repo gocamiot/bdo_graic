@@ -15,6 +15,8 @@ urlpatterns = [
 
     path('delete/file/<int:pk>/', views.delete_file, name='delete_file'),
     path('edit/file/<int:pk>/', views.edit_file, name='edit_file'),
+    path('move/file/<int:folder_id>/<int:file_id>/', views.move_file, name='move_file'),
+    path('move-selected-items/', views.move_multiple_files, name='move_selected_items'),
 
     path('delete-selected-items/', views.delete_selected_items, name='delete_selected_items'),
     path('set-default-value/', views.set_default_value, name='set_default_value'),

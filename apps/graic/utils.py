@@ -36,7 +36,7 @@ def pre_prompt_func(current_datetime):
 
     return pre_prompt
 
-def api_engine(prompt, is_online=False, llm="openai"):
+def api_engine(prompt, is_online=False, llm="openai", image_data=None):
     if not is_online:
         try:
             response = requests.post(
@@ -71,11 +71,21 @@ def api_engine(prompt, is_online=False, llm="openai"):
             
         elif llm == "openai":
             try:
+                content = [{"type": "text", "text": prompt}]
+                if image_data:
+                    content.append({
+                        "type": "image_url",
+                        "image_url": {"url": image_data}
+                    })
+
                 completion = client.chat.completions.create(
                     model="gpt-5-mini",
                     store=True,
                     messages=[
-                        {"role": "user", "content": prompt}
+                        {
+                            "role": "user", 
+                            "content": content
+                        }
                     ]
                 )
                 response = completion.choices[0].message.content

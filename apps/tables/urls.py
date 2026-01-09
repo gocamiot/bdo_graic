@@ -39,9 +39,9 @@ urlpatterns = [
     path('check_task_status/<str:task_id>/', views.check_task_status, name='check_task_status'),
 
     # File
-    path('file-upload/', views.file_upload, name="file_upload"),
-    path('download-file/<int:file_id>/', views.download_file, name="download_file"),
-    path('delete-file/<int:file_id>/', views.delete_file, name="delete_file"),
+    # path('file-upload/', views.file_upload, name="file_upload"),
+    # path('download-file/<int:file_id>/', views.download_file, name="download_file"),
+    # path('delete-file/<int:file_id>/', views.delete_file, name="delete_file"),
 
     # Global urls
     path('delete-saved-filter/', views.delete_saved_filter, name="delete_saved_filter"),

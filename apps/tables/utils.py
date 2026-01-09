@@ -723,7 +723,7 @@ def common_unique_filter(request, unique_filter, queryset, snapshot_filter, tabl
     return queryset
 
 
-def common_count_filter(count_filters, base_queryset, queryset, db_field_names, exp_fields=[], export=False):
+def common_count_filter(count_filters, base_queryset, queryset, db_field_names, exp_fields=[], export=False, total=False):
     fields = [field.replace('-COUNT', '') for field in count_filters]
     count_field = fields[-1]
 
@@ -771,7 +771,12 @@ def common_count_filter(count_filters, base_queryset, queryset, db_field_names, 
     else:
         insert_count(exp_fields)
 
-    return queryset
+    total_count = queryset.count()
+
+    if total:
+        return queryset, total_count
+    else:
+        return queryset
 
 
 def get_model(name: str = None):
