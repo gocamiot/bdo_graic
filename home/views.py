@@ -1590,7 +1590,7 @@ def load_data_to_join_model(request, model_name, pk):
 
     params = request.POST.dict()
     params["fields_to_pass"] = request.POST.getlist("fields_to_pass")
-	params['referer'] = request.META.get('HTTP_REFERER', request.path)
+    params['referer'] = request.META.get('HTTP_REFERER', request.path)
 
     task = async_load_data_to_join_model.delay(
         model_name=model_name,
