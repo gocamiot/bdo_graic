@@ -994,6 +994,7 @@
             <form action="{% url "add_to_tab" model_name='SAGEUserList' model_choice='SAGE_USER_LIST' %}" method="post" class="p-4 md:p-5">
               {% csrf_token %}
 
+              <input type="hidden" name="search_fields" value="{{ request.GET.search }}" >
               <input type="hidden" name="search_mode" value="{{ request.GET.mode }}" >
               <input type="hidden" name="order_by" value="{{ request.GET.order_by }}" >
               <input type="hidden" name="snapshot" value="{{ request.GET.snapshot }}">

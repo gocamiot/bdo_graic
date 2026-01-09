@@ -7,6 +7,8 @@ from home.models import PyFunctionPrompt, PyFunction
 from apps.file_manager.models import DefaultValues
 from apps.graic.models import Chat
 from django.utils.timezone import now
+from apps.file_manager.models import File, ActionStatus
+from django.db.models import Q
 
 def get_greeting():
     current_hour = datetime.now().hour
@@ -40,6 +42,12 @@ def dt_context(request):
     greeting = get_greeting()
     last_prompt = PyFunctionPrompt.objects.last()
     chats = []
+
+    files = File.objects.filter(
+        action_status=ActionStatus.IS_ACTIVE
+    ).filter(
+        Q(file__iendswith='.xlsx') | Q(file__iendswith='.xls')
+    ).order_by('-uploaded_at')
     
     if request.user.is_authenticated:
         user_groups = request.user.groups.all()
@@ -71,5 +79,6 @@ def dt_context(request):
         'default_value': DefaultValues.objects.first(),
         'greeting': greeting,
         'chats': chats,
-        'charts_type': ChartType.choices
+        'charts_type': ChartType.choices,
+        'files': files
     }

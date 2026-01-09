@@ -37,6 +37,7 @@ class ModelChoices(models.TextChoices):
     UNIQUE = 'UNIQUE', _('Unique')
     FINDING = 'FINDING', _('Finding')
     TAB = 'TAB', _('Tab')
+    CHART = 'CHART', _('Chart')
     COPY_DT = 'COPY_DT', _('Copy DT')
     FINDING_VIEW = 'FINDING_VIEW', _('Finding View')
     IMAGE_LOADER = 'IMAGE_LOADER', _('Image Loader')
@@ -275,12 +276,16 @@ class BaseCharts(models.Model):
         null=True
     )
     name = models.TextField(max_length=255, default="Charts")
+    saved_filters = models.ManyToManyField('common.SavedFilter', blank=True)
     created_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         unique_together = ('base_view', 'name')
 
+    class Meta:
+        verbose_name = "Base Chart"
+        verbose_name_plural = "Base Charts"
 
 class ChartType(models.TextChoices):
     BAR = 'BAR', 'Bar Chart'
@@ -295,6 +300,7 @@ class TabCharts(models.Model):
     x_field = models.CharField(max_length=100)
     y_field = models.CharField(max_length=100, null=True, blank=True)
     chart_type = models.CharField(max_length=20, choices=ChartType.choices, default=ChartType.BAR)
+    color = models.CharField(max_length=100, default='#008FFB', verbose_name='Bar or Line color')
     info = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(null=True, blank=True)
@@ -302,6 +308,50 @@ class TabCharts(models.Model):
     def clean(self):
         if self.x_field == self.y_field:
             raise ValidationError("x_field and y_field cannot be the same.")
+    
+    class Meta:
+        verbose_name = "Tab Chart"
+        verbose_name_plural = "Tab Charts"
+
+
+class ScheduledChartExport(models.Model):
+    EXPORT_TYPE_CHOICES = (
+        ("docx", "DOCX"),
+        ("pdf", "PDF"),
+    )
+
+    FREQUENCY_CHOICES = (
+        ("once", "One time"),
+        ("hourly", "Hourly"),
+        ("daily", "Daily"),
+        ("weekly", "Weekly"),
+        ("monthly", "Monthly"),
+    )
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    chart = models.ForeignKey(TabCharts, on_delete=models.CASCADE)
+
+    chart_image = models.TextField(blank=True, null=True)
+    export_type = models.CharField(max_length=10, choices=EXPORT_TYPE_CHOICES)
+    export_option = models.CharField(max_length=10, default="grc")
+
+    frequency = models.CharField(max_length=10, choices=FREQUENCY_CHOICES)
+    start_at = models.DateTimeField()
+    end_at = models.DateTimeField(null=True, blank=True)
+
+    hour_interval = models.PositiveIntegerField(null=True, blank=True)
+    time_of_day = models.TimeField(null=True, blank=True)
+    weekdays = models.JSONField(default=list, blank=True)
+    month_day = models.PositiveSmallIntegerField(null=True, blank=True)
+
+    custom_prompt = models.TextField(blank=True)
+
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    last_run_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.chart.name} ({self.frequency})"
 
 class EmailActionStatus(models.TextChoices):
     OPEN = 'OPEN', 'Open'
@@ -952,25 +1002,25 @@ class UnifiedAccessManagement(models.Model):
     EMail = models.TextField(null=True, blank=True, verbose_name='EMail', db_column='EMail')
     Company_Laptop_Hardware_User = models.TextField(null=True, blank=True, verbose_name='Company_Laptop_Hardware_User', db_column='Company_Laptop_Hardware_User')
     VPN_Status = models.TextField(null=True, blank=True, verbose_name='VPN_Status', db_column='VPN_Status')
-    VPN_Last_Used = models.TextField(null=True, blank=True, verbose_name='VPN_Last_Used', db_column='VPN_Last_Used')
+    VPN_Last_Used = models.BigIntegerField(null=True, blank=True, verbose_name='VPN_Last_Used', db_column='VPN_Last_Used')
     Servicenow_Status = models.TextField(null=True, blank=True, verbose_name='Servicenow_Status', db_column='Servicenow_Status')
-    Servicenow_Last_Used = models.TextField(null=True, blank=True, verbose_name='Servicenow_Last_Used', db_column='Servicenow_Last_Used')
+    Servicenow_Last_Used = models.BigIntegerField(null=True, blank=True, verbose_name='Servicenow_Last_Used', db_column='Servicenow_Last_Used')
     SAP_Status = models.TextField(null=True, blank=True, verbose_name='SAP_Status', db_column='SAP_Status')
-    SAP_Last_Used = models.TextField(null=True, blank=True, verbose_name='SAP_Last_Used', db_column='SAP_Last_Used')
+    SAP_Last_Used = models.BigIntegerField(null=True, blank=True, verbose_name='SAP_Last_Used', db_column='SAP_Last_Used')
     Financial_system_Status = models.TextField(null=True, blank=True, verbose_name='Financial_system_Status', db_column='Financial_system_Status')
-    Financial_system_Last_Used = models.TextField(null=True, blank=True, verbose_name='Financial_system_Last_Used', db_column='Financial_system_Last_Used')
+    Financial_system_Last_Used = models.BigIntegerField(null=True, blank=True, verbose_name='Financial_system_Last_Used', db_column='Financial_system_Last_Used')
     SPLUNK_Status = models.TextField(null=True, blank=True, verbose_name='SPLUNK_Status', db_column='SPLUNK_Status')
-    SPLUNK_Last_Used = models.TextField(null=True, blank=True, verbose_name='SPLUNK_Last_Used', db_column='SPLUNK_Last_Used')
-    HR_Last_Used = models.TextField(null=True, blank=True, verbose_name='HR_Last_Used', db_column='HR_Last_Used')
+    SPLUNK_Last_Used = models.BigIntegerField(null=True, blank=True, verbose_name='SPLUNK_Last_Used', db_column='SPLUNK_Last_Used')
+    HR_Last_Used = models.BigIntegerField(null=True, blank=True, verbose_name='HR_Last_Used', db_column='HR_Last_Used')
     Payroll_Status = models.TextField(null=True, blank=True, verbose_name='Payroll_Status', db_column='Payroll_Status')
-    Payroll_Last_Used = models.TextField(null=True, blank=True, verbose_name='Payroll_Last_Used', db_column='Payroll_Last_Used')
+    Payroll_Last_Used = models.BigIntegerField(null=True, blank=True, verbose_name='Payroll_Last_Used', db_column='Payroll_Last_Used')
     Risk_Score = models.TextField(null=True, blank=True, verbose_name='Risk_Score', db_column='Risk_Score')
     loader_instance = models.IntegerField(null=True, blank=True)
     json_data = models.JSONField(null=True, blank=True)
     hash_data = VectorField(dimensions=1024, null=True, blank=True)
     fts = SearchVectorField(null=True, blank=True)
 
-    date_fields_to_convert = []
+    date_fields_to_convert = ['VPN_Last_Used','Servicenow_Last_Used','SAP_Last_Used','Financial_system_Last_Used','SPLUNK_Last_Used','HR_Last_Used','Payroll_Last_Used',]
     integer_fields = []
     float_fields = []
     encrypted_fields = []

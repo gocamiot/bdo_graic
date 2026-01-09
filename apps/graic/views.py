@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from apps.graic.models import PrePrompt, Graic, Agent, Chat
 from datetime import datetime
 from apps.common.signals import to_sql_vector
-from apps.file_manager.models import File, ActionStatus, FileChunk, DefaultValues, FilterMethod
+from apps.file_manager.models import File, ActionStatus, FileChunk, DefaultValues, FilterMethod, FileManager
 from loader.models import is_pgvector_enabled, InstantUpload
 from apps.graic.utils import pre_prompt_func, api_engine, aggregate_responses, extract_keywords, extract_keywords_llm, get_last_responses_summary, get_agent, pick_agent_with_llm
 from django.apps import apps
@@ -16,6 +16,8 @@ from loader.models import preprocess_text
 from openpyxl import load_workbook
 from tempfile import NamedTemporaryFile
 from openpyxl.utils import get_column_letter
+from django.db.models import Q
+from apps.tables.models import ActionStatus, DocumentStatus, DocumentType
 
 GRAIC_SEQUENCE_PATTERN = re.compile(
     r'<graic\s+sequence=["\']?(\d+)["\']?(?:\s+new_chat=["\']?(\w+)["\']?)?>\s*(.*?)\s*</graic>',
@@ -39,7 +41,8 @@ def graic_chat_index(request):
 
         start_time = datetime.now()
         prompt = request.POST.get('prompt')
-        file = request.FILES.get('file')
+        uploaded_file = request.FILES.get('file')
+        existing_file_id = request.POST.get('existing_file_id')
 
         agent = pick_agent_with_llm(prompt)
         print(agent, "===agent===")
@@ -48,15 +51,25 @@ def graic_chat_index(request):
         summary_response = ""
         pre_response = ""
 
-        print(file, "===file===")
+        print(uploaded_file, "===file===")
 
-        if file:   
-            # prompt = "I completed your tasks as best as I could. Please download your file and review."    
+        if uploaded_file:     
             with NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_in, \
                 NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_out:
 
-                for chunk in file.chunks():
+                for chunk in uploaded_file.chunks():
                     tmp_in.write(chunk)
+
+                process_excel_with_sequences(request, tmp_in.name, tmp_out.name, chat.uuid, default_value)
+                generated_file_path = tmp_out.name
+
+        elif existing_file_id:
+            file_instance = get_object_or_404(File, id=existing_file_id)
+            with NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_in, \
+                NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_out:
+
+                with file_instance.file.open('rb') as f:
+                    tmp_in.write(f.read())
 
                 process_excel_with_sequences(request, tmp_in.name, tmp_out.name, chat.uuid, default_value)
                 generated_file_path = tmp_out.name
@@ -96,14 +109,14 @@ def graic_chat_index(request):
 
     return render(request, 'graic/chat_index.html')
 
-
 def graic_chat(request, chat_id):
     chat = get_object_or_404(Chat, uuid=chat_id)
     griac_data = Graic.objects.filter(user=request.user, chat=chat)
+
     context = {
         'griac_data': griac_data,
         'chat': chat,
-        'segment': chat.pk
+        'segment': chat.pk,
     }
     return render(request, 'graic/chat.html', context)
 
@@ -738,24 +751,35 @@ def ask_graic(request, chat_id):
     if request.method == 'POST':
         start_time = datetime.now()
         prompt = request.POST.get('prompt')
-        file = request.FILES.get('file')
+        uploaded_file = request.FILES.get('file')
+        existing_file_id = request.POST.get('existing_file_id')
 
         generated_file_path = None
         summary_response = ""
         pre_response = ""
-
-        print(file, "===file===")
+        
+        print(uploaded_file, "===file===")
 
         agent = pick_agent_with_llm(prompt)
         print(agent, "===agent===")
 
-        if file:   
-            # prompt = "I completed your tasks as best as I could. Please download your file and review."    
+        if uploaded_file:    
             with NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_in, \
                 NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_out:
 
-                for chunk in file.chunks():
+                for chunk in uploaded_file.chunks():
                     tmp_in.write(chunk)
+
+                process_excel_with_sequences(request, tmp_in.name, tmp_out.name, chat.uuid, default_value)
+                generated_file_path = tmp_out.name
+
+        elif existing_file_id:
+            file_instance = get_object_or_404(File, id=existing_file_id)
+            with NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_in, \
+                NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_out:
+
+                with file_instance.file.open('rb') as f:
+                    tmp_in.write(f.read())
 
                 process_excel_with_sequences(request, tmp_in.name, tmp_out.name, chat.uuid, default_value)
                 generated_file_path = tmp_out.name
@@ -841,6 +865,7 @@ from reportlab.platypus import (
     SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
 )
 from reportlab.lib.units import cm
+from django.core.files.base import ContentFile
 
 def parse_html_response(html_text):
     if not html_text:
@@ -855,17 +880,64 @@ def parse_html_response(html_text):
             rows = []
             for tr in table.find_all("tr"):
                 cells = [td.get_text(strip=True) for td in tr.find_all(["td", "th"])]
-                rows.append(cells)
+                if cells:
+                    rows.append(cells)
             all_tables.append(rows)
         return True, all_tables
-    else:
-        clean_text = soup.get_text(separator="\n", strip=True)
-        return False, clean_text
-    
+
+    clean_text = soup.get_text(separator="\n", strip=True)
+    return False, clean_text
+
+
+def get_or_create_folder(name, parent=None, user=None):
+    folder, _ = FileManager.objects.get_or_create(
+        name=name,
+        parent=parent,
+        defaults={
+            "created_by": user,
+            "updated_by": user,
+            "action_status": ActionStatus.IS_ACTIVE,
+            "folder_status": DocumentStatus.APPROVED,
+        }
+    )
+    return folder
+
+def handle_export_destination(request, buffer, filename, content_type):
+    destination = request.POST.get("destination", "download")
+    buffer.seek(0)
+
+    if destination != "grc":
+        response = HttpResponse(buffer.getvalue(), content_type=content_type)
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+
+    user = request.user
+    username = user.username if user.is_authenticated else "anonymous"
+    users_root = get_or_create_folder("users", parent=None, user=user)
+    user_folder = get_or_create_folder(username, parent=users_root, user=user)
+    graic_folder = get_or_create_folder("graic", parent=user_folder, user=user)
+
+    file_obj = File.objects.create(
+        file_manager=graic_folder,
+        file=ContentFile(buffer.getvalue(), name=filename),
+        action_status=ActionStatus.IS_ACTIVE,
+        file_status=DocumentStatus.APPROVED,
+        uploaded_by=user,
+        updated_by=user
+    )
+
+    return JsonResponse({
+        "success": True,
+        "file_id": file_obj.id,
+        "filename": filename,
+        "path": f"users/{username}/graic"
+    })
+
 
 # ---- Export to Word ----
 def export_graic_word(request, pk):
     entry = get_object_or_404(Graic, pk=pk)
+
     document = Document()
     document.add_heading("grAIc Chat Export", level=1)
     document.add_paragraph(f"You: {entry.prompt}", style='ListBullet')
@@ -873,11 +945,7 @@ def export_graic_word(request, pk):
     soup = BeautifulSoup(entry.response, "html.parser")
     tables = soup.find_all("table")
 
-    for t_index, table_html in enumerate(tables, start=1):
-        caption = table_html.find("caption")
-        if caption:
-            document.add_paragraph(f"{caption.text.strip()}:", style='ListBullet')
-
+    for table_html in tables:
         rows = []
         for tr in table_html.find_all("tr"):
             cells = [td.get_text(strip=True) for td in tr.find_all(["td", "th"])]
@@ -887,9 +955,7 @@ def export_graic_word(request, pk):
         if not rows:
             continue
 
-        max_cols = max(len(r) for r in rows)
-
-        table = document.add_table(rows=0, cols=max_cols)
+        table = document.add_table(rows=0, cols=max(len(r) for r in rows))
         table.style = "Table Grid"
 
         for row_data in rows:
@@ -897,55 +963,49 @@ def export_graic_word(request, pk):
             for i, cell_text in enumerate(row_data):
                 cells[i].text = cell_text
 
-        document.add_paragraph("")
-
     buffer = io.BytesIO()
     document.save(buffer)
-    buffer.seek(0)
 
-    response = HttpResponse(
-        buffer.getvalue(),
-        content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    return handle_export_destination(
+        request,
+        buffer,
+        f"graic_{entry.id}.docx",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
-    response['Content-Disposition'] = f'attachment; filename="graic_{entry.id}.docx"'
-    return response
 
 
 # ---- Export to Excel ----
 def export_graic_excel(request, pk):
-    entry = Graic.objects.get(pk=pk)
+    entry = get_object_or_404(Graic, pk=pk)
     is_table, parsed_data = parse_html_response(entry.response)
-    
+
     wb = Workbook()
     ws = wb.active
     ws.title = "grAIc Export"
 
     if is_table:
-        current_row = 1
         for table in parsed_data:
             for row in table:
                 ws.append(row)
-                current_row += 1
-
-            current_row += 1
             ws.append([])
-
     else:
         ws.append(["You:", entry.prompt])
         ws.append(["grAIc:", parsed_data])
 
-    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    response["Content-Disposition"] = f'attachment; filename="graic_{entry.id}.xlsx"'
-    wb.save(response)
-    return response
+    buffer = io.BytesIO()
+    wb.save(buffer)
 
+    return handle_export_destination(
+        request,
+        buffer,
+        f"graic_{entry.id}.xlsx",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 # ---- Export to PDF ----
 def export_graic_pdf(request, pk):
-    entry = Graic.objects.get(pk=pk)
-    html_content = entry.response
-
-    soup = BeautifulSoup(html_content, "html.parser")
+    entry = get_object_or_404(Graic, pk=pk)
+    soup = BeautifulSoup(entry.response, "html.parser")
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -957,84 +1017,69 @@ def export_graic_pdf(request, pk):
         bottomMargin=1*cm,
     )
 
-    story = []
     styles = getSampleStyleSheet()
     normal_style = styles["Normal"]
     title_style = ParagraphStyle(
         "TableTitle",
         parent=styles["Heading2"],
         alignment=1,
-        spaceAfter=6,
         fontSize=12,
-        textColor=colors.HexColor("#333333"),
+        spaceAfter=6,
     )
 
-    tables = soup.find_all("table")
-    for i, table in enumerate(tables):
-        title_row = table.find("tr")
-        table_title = ""
-        if title_row and title_row.find("th") and len(title_row.find_all("th")) == 1:
-            table_title = title_row.get_text(strip=True)
-            title_row.decompose()
+    story = []
 
-        if table_title:
-            story.append(Paragraph(f"<b>{table_title}</b>", title_style))
-            story.append(Spacer(1, 6))
+    for table in soup.find_all("table"):
+        headers, rows = [], []
 
-        headers = []
         thead = table.find("thead")
         if thead:
             for tr in thead.find_all("tr"):
-                row_data = [Paragraph(cell.get_text(strip=True), normal_style) for cell in tr.find_all(["th", "td"])]
-                headers.append(row_data)
+                headers.append([
+                    Paragraph(td.get_text(strip=True), normal_style)
+                    for td in tr.find_all(["th", "td"])
+                ])
 
-        rows = []
         tbody = table.find("tbody")
         if tbody:
             for tr in tbody.find_all("tr"):
-                row_data = [Paragraph(cell.get_text(strip=True) or "", normal_style) for cell in tr.find_all(["td", "th"])]
-                rows.append(row_data)
+                rows.append([
+                    Paragraph(td.get_text(strip=True) or "", normal_style)
+                    for td in tr.find_all(["td", "th"])
+                ])
 
         data = headers + rows
         if not data:
             continue
 
-        num_cols = max(len(r) for r in data)
-        col_width = (doc.width / num_cols) if num_cols > 0 else doc.width
-
-        table_obj = Table(data, repeatRows=1, colWidths=[col_width]*num_cols)
+        col_width = doc.width / len(data[0])
+        table_obj = Table(data, repeatRows=1, colWidths=[col_width]*len(data[0]))
         table_obj.setStyle(TableStyle([
+            ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),
-            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.grey),
-            ("BOX", (0, 0), (-1, -1), 0.25, colors.grey),
             ("FONTSIZE", (0, 0), (-1, -1), 8),
         ]))
 
         story.append(table_obj)
         story.append(Spacer(1, 12))
 
-        if i < len(tables) - 1:
-            story.append(PageBreak())
-
     doc.build(story)
-    pdf = buffer.getvalue()
-    buffer.close()
 
-    response = HttpResponse(content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="graic_{pk}.pdf"'
-    response.write(pdf)
-    return response
+    return handle_export_destination(
+        request,
+        buffer,
+        f"graic_{pk}.pdf",
+        "application/pdf"
+    )
 
 
 # ---- Export to Markdown ----
 def export_graic_markdown(request, pk):
     entry = get_object_or_404(Graic, pk=pk)
-    markdown_converter = html2text.HTML2Text()
-    markdown_converter.ignore_links = False
-    markdown_converter.body_width = 0
+
+    converter = html2text.HTML2Text()
+    converter.ignore_links = False
+    converter.body_width = 0
 
     md_content = f"# grAIc Chat Export\n\n"
     md_content += f"**You:** {entry.prompt}\n\n"
@@ -1042,31 +1087,28 @@ def export_graic_markdown(request, pk):
     is_table, parsed_data = parse_html_response(entry.response)
 
     if is_table:
-        for t_index, table_data in enumerate(parsed_data, start=1):
-            if not table_data or not table_data[0]:
+        for idx, table in enumerate(parsed_data, 1):
+            if not table:
                 continue
 
-            table_title = f"Table {t_index}"
-            if len(table_data[0]) == 1 and "table" in table_data[0][0].lower():
-                table_title += f": {table_data[0][0]}"
-                table_data = table_data[1:]
+            header = table[0]
+            md_content += f"**Table {idx}:**\n\n"
+            md_content += "| " + " | ".join(header) + " |\n"
+            md_content += "| " + " | ".join(["---"] * len(header)) + " |\n"
 
-            md_content += f"**{table_title}:**\n\n"
+            for row in table[1:]:
+                row += [""] * (len(header) - len(row))
+                md_content += "| " + " | ".join(row) + " |\n"
 
-            header_row = table_data[0]
-            header = "| " + " | ".join(header_row) + " |\n"
-            separator = "| " + " | ".join(["---"] * len(header_row)) + " |\n"
-
-            rows = ""
-            for row in table_data[1:]:
-                row += [""] * (len(header_row) - len(row))
-                rows += "| " + " | ".join(row) + " |\n"
-
-            md_content += header + separator + rows + "\n"
-
+            md_content += "\n"
     else:
-        md_content += markdown_converter.handle(parsed_data or "")
+        md_content += converter.handle(parsed_data or "")
 
-    response = HttpResponse(md_content, content_type="text/markdown")
-    response['Content-Disposition'] = f'attachment; filename="graic_{entry.id}.md"'
-    return response
+    buffer = io.BytesIO(md_content.encode("utf-8"))
+
+    return handle_export_destination(
+        request,
+        buffer,
+        f"graic_{entry.id}.md",
+        "text/markdown"
+    )

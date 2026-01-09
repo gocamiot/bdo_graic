@@ -595,7 +595,8 @@ def tab_details(request, id):
     label_to_value = {label: value for value, label in ModelChoices.choices}
     s_model_choice = label_to_value.get(tab_model.__name__)
 
-    y_fields = tab_model.integer_fields + tab_model.float_fields
+    # y_fields = tab_model.integer_fields + tab_model.float_fields
+    y_fields = []
     if 'count' in db_field_names:
         y_fields.append('count')
 
@@ -639,6 +640,31 @@ def tab_details(request, id):
         'x_fields': x_fields
     }
     return render(request, 'apps/tab/tab_details.html', context)
+
+def get_axis_fields(request, tab_id):
+    tab = Tab.objects.get(id=tab_id)
+    content_type = ContentType.objects.get(app_label=tab.content_type.app_label, model=tab.content_type.model)
+    db_field_names = [field.name for field in content_type.model_class()._meta.get_fields() if not field.is_relation]
+    x_fields = db_field_names
+
+    count_filter_column = SavedFilter.objects.filter(
+        userID=get_user_id(request),
+        parent=ModelChoices.TAB,
+        tab_id=tab.id,
+        is_count=True
+    ).last()
+
+    selected_x = request.GET.get("x_axis", "")
+    y_fields = []
+    if count_filter_column:
+        if selected_x == count_filter_column.field_name:
+            y_fields.append("count")
+
+    return JsonResponse({
+        "x_fields": x_fields,
+        "y_fields": y_fields,
+        "count_column": count_filter_column.field_name if count_filter_column else None
+    })
 
 def remove_tab(request, id):
     tab = Tab.objects.get(id=id)

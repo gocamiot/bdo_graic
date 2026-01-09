@@ -82,6 +82,7 @@ class IPE(models.Model):
     img_loader_id = models.TextField(null=True, blank=True)
     unique_id = models.TextField(null=True, blank=True)
     tab_id = models.TextField(null=True, blank=True)
+    chart_id = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def get_description_dict(self):

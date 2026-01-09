@@ -54,7 +54,6 @@ def sub_folders(request, slug):
         #     keywords = search
 
         keywords = search
-        print(keywords, "====keywords====")
 
         search_vector = to_sql_vector(keywords)
 
@@ -125,10 +124,13 @@ def sub_folders(request, slug):
             reverse=True
         )
 
+    folders = FileManager.objects.filter(parent__isnull=True).prefetch_related('children')
+
     context = {
         'file_managers': file_managers,
         'parent_folder': parent_folder,
         'files': files,
+        'folders': folders, 
         'document_status': DocumentStatus,
         'document_type': DocumentType,
         'segment': root_folder.name,
@@ -450,3 +452,36 @@ def set_default_value(request):
 def clear_default(request):
     DefaultValues.objects.all().delete()
     return redirect(request.META.get('HTTP_REFERER'))
+
+
+def move_file(request, folder_id, file_id):
+    folder = get_object_or_404(FileManager, pk=folder_id)
+    file = get_object_or_404(File, pk=file_id)
+
+    file.file_manager = folder
+    file.save()
+
+    return redirect(request.META.get('HTTP_REFERER'))
+
+from django.views.decorators.http import require_POST
+
+@require_POST
+def move_multiple_files(request):
+    data = json.loads(request.body)
+
+    folder_id = data.get("folder_id")
+    file_ids = data.get("items", [])
+
+    ids = []
+    for id in file_ids:
+        if id.startswith('file-'):
+            pk = id.replace('file-', '')
+            ids.append(pk)
+    
+    if not folder_id or not file_ids:
+        return JsonResponse({"success": False, "message": "Invalid data"})
+
+    folder = get_object_or_404(FileManager, pk=folder_id)
+
+    File.objects.filter(id__in=ids).update(file_manager=folder)
+    return JsonResponse({"success": True})

@@ -1227,56 +1227,56 @@ def check_task_status(request, task_id):
 #############
 # File Upload
 #############
-from apps.common.forms import FileForm
-from apps.common.models import File, FileStatus
+# from apps.common.forms import FileForm
+# from apps.common.models import File, FileStatus
 
-@login_required(login_url='/users/signin/')
-def file_upload(request):
-    files = File.objects.filter(status=FileStatus.ACTIVE)
-    form = FileForm()
-    if request.method == 'POST':
-        form = FileForm(request.POST, request.FILES)
-        if form.is_valid():
-            files = request.FILES.getlist('files')
-            for file in files:
-                File.objects.create(
-                    description=form.cleaned_data.get('description'),
-                    file=file,
-                    created_by=request.user
-                )
+# @login_required(login_url='/users/signin/')
+# def file_upload(request):
+#     files = File.objects.filter(status=FileStatus.ACTIVE)
+#     form = FileForm()
+#     if request.method == 'POST':
+#         form = FileForm(request.POST, request.FILES)
+#         if form.is_valid():
+#             files = request.FILES.getlist('files')
+#             for file in files:
+#                 File.objects.create(
+#                     description=form.cleaned_data.get('description'),
+#                     file=file,
+#                     created_by=request.user
+#                 )
             
-            return redirect(request.META.get('HTTP_REFERER'))
+#             return redirect(request.META.get('HTTP_REFERER'))
 
-    context = {
-        'files': files,
-        'form': form,
-        'segment': 'files'
-    }
+#     context = {
+#         'files': files,
+#         'form': form,
+#         'segment': 'files'
+#     }
 
-    return render(request, 'pages/file-upload.html', context)
-
-
-@login_required(login_url='/users/signin/')
-def download_file(request, file_id):
-    file_instance = get_object_or_404(File, id=file_id)
-
-    if not file_instance.file:
-        raise Http404("File not found.")
-
-    filename = os.path.basename(file_instance.file.name)
-    filename = f"{file_instance.description}-{filename}"
-
-    response = FileResponse(file_instance.file.open('rb'), as_attachment=True, filename=filename)
-    return response
+#     return render(request, 'pages/file-upload.html', context)
 
 
-@login_required(login_url='/users/signin/')
-def delete_file(request, file_id):
-    file_instance = get_object_or_404(File, id=file_id)
-    file_instance.status = FileStatus.DELETED
-    file_instance.updated_by = request.user
-    file_instance.save()
-    return redirect(request.META.get('HTTP_REFERER'))
+# @login_required(login_url='/users/signin/')
+# def download_file(request, file_id):
+#     file_instance = get_object_or_404(File, id=file_id)
+
+#     if not file_instance.file:
+#         raise Http404("File not found.")
+
+#     filename = os.path.basename(file_instance.file.name)
+#     filename = f"{file_instance.description}-{filename}"
+
+#     response = FileResponse(file_instance.file.open('rb'), as_attachment=True, filename=filename)
+#     return response
+
+
+# @login_required(login_url='/users/signin/')
+# def delete_file(request, file_id):
+#     file_instance = get_object_or_404(File, id=file_id)
+#     file_instance.status = FileStatus.DELETED
+#     file_instance.updated_by = request.user
+#     file_instance.save()
+#     return redirect(request.META.get('HTTP_REFERER'))
 
 
 # Global views
@@ -1300,7 +1300,7 @@ def delete_saved_filter(request):
 
 
 import pandas as pd
-
+from apps.file_manager.models import File
 
 def loader_csv_upload(request, model_name):
     try:
@@ -1310,6 +1310,16 @@ def loader_csv_upload(request, model_name):
     
     if request.method == 'POST':
         uploaded_file = request.FILES.get('csv_file')
+        
+        if not uploaded_file:
+            existing_file_id = request.POST.get('existing_file_id')
+            if existing_file_id:
+                try:
+                    existing = File.objects.get(id=existing_file_id)
+                    uploaded_file = existing.file
+                except File.DoesNotExist:
+                    uploaded_file = None
+        
         if uploaded_file:
             file_name = uploaded_file.name
             file_extension = file_name.split('.')[-1].lower()
