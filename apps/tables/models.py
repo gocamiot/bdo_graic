@@ -313,6 +313,9 @@ class TabCharts(models.Model):
         verbose_name = "Tab Chart"
         verbose_name_plural = "Tab Charts"
 
+class ChartPrompt(models.Model):
+    base_chart = models.OneToOneField(BaseCharts, on_delete=models.CASCADE)
+    prompt = models.TextField(null=True, blank=True)
 
 class ScheduledChartExport(models.Model):
     EXPORT_TYPE_CHOICES = (

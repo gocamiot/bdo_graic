@@ -527,17 +527,18 @@ def tab_details(request, id):
     if float_query_conditions:
         queryset = queryset.filter(float_query_conditions)
 
+    total = 0
     if user_count_filters:
-        queryset = common_count_filter(user_count_filters, base_queryset, queryset, ordered_fields)
+        queryset, total = common_count_filter(user_count_filters, base_queryset, queryset, ordered_fields, total=True)
     elif date_count_filters:
-        queryset = common_count_filter(date_count_filters, base_queryset, queryset, ordered_fields)
+        queryset, total = common_count_filter(date_count_filters, base_queryset, queryset, ordered_fields, total=True)
     elif int_count_filters:
-        queryset = common_count_filter(int_count_filters, base_queryset, queryset, ordered_fields)
+        queryset, total = common_count_filter(int_count_filters, base_queryset, queryset, ordered_fields, total=True)
     elif float_count_filters:
-        queryset = common_count_filter(float_count_filters, base_queryset, queryset, ordered_fields)
+        queryset, total = common_count_filter(float_count_filters, base_queryset, queryset, ordered_fields, total=True)
     else:
-        if order_by in ['count', '-count']:
-            order_by = 'pk'
+        if order_by == 'count' or order_by == '-count':
+            order_by = 'ID'
 
     order_by = order_by or 'pk'
     queryset = queryset.order_by(order_by)
@@ -637,7 +638,8 @@ def tab_details(request, id):
         'tab_notes': tab_notes,
         'notes_form': TabNotesForm(initial={'notes': tab_notes.note}),
         'y_fields': y_fields,
-        'x_fields': x_fields
+        'x_fields': x_fields,
+        'total_count': total,
     }
     return render(request, 'apps/tab/tab_details.html', context)
 

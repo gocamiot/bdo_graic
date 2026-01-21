@@ -442,7 +442,7 @@
                 {% for field in db_field_names %}
                   <th id="th_{{ field }}" scope="col" class="p-2 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">
                     <div class="group flex items-center gap-2 whitespace-nowrap h-6 w-48">
-                      <span class="block">{{ field }}</span>
+                      <span class="block whitespace-nowrap overflow-hidden">{{ field }}{% if field == 'count' and total_count %}({{total_count}}){% endif %}</span>
                       <div class="hidden group-hover:inline-block">
                         <a class="order-link" data-order="{{ field }}" href="#">
                           <img class="w-3" src="{% static "dist/images/up-arrow.png" %}" alt="">
@@ -1718,6 +1718,38 @@
       toggleColorPicker();
       chartTypeSelect.addEventListener("change", toggleColorPicker);
   });
+</script>
+
+
+<script>
+  const uploadForm = document.getElementById("upload-form");
+  const uploadOptions = document.getElementById("upload-options");
+  const fileInput = document.getElementById("file_input");
+  const selectedFileName = document.getElementById("selected-file-name");
+  const existingFileId = document.getElementById("existing-file-id");
+
+  fileInput.addEventListener("change", () => {
+    if (fileInput.files.length > 0) {
+      uploadForm.classList.remove("hidden");
+      uploadOptions.classList.add("hidden");
+
+      selectedFileName.value = fileInput.files[0].name;
+      existingFileId.value = "";
+    }
+  });
+
+  function selectExistingFile(fileId, fileUrl, fileName) {
+    uploadForm.classList.remove("hidden");
+    uploadOptions.classList.add("hidden");
+
+    selectedFileName.value = fileName;
+    existingFileId.value = fileId;
+    fileInput.value = "";
+
+    document
+      .querySelector('[data-modal-hide="file-manager-modal"]')
+      ?.click();
+  }
 </script>
 
 

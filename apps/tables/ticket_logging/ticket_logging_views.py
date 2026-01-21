@@ -153,14 +153,15 @@ def ticket_logging(request):
     if float_query_conditions:
         queryset = queryset.filter(float_query_conditions)
     
+    total = 0
     if user_count_filters:
-        queryset = common_count_filter(user_count_filters, base_queryset, queryset, ordered_fields)
+        queryset, total = common_count_filter(user_count_filters, base_queryset, queryset, ordered_fields, total=True)
     elif date_count_filters:
-        queryset = common_count_filter(date_count_filters, base_queryset, queryset, ordered_fields)
+        queryset, total = common_count_filter(date_count_filters, base_queryset, queryset, ordered_fields, total=True)
     elif int_count_filters:
-        queryset = common_count_filter(int_count_filters, base_queryset, queryset, ordered_fields)
+        queryset, total = common_count_filter(int_count_filters, base_queryset, queryset, ordered_fields, total=True)
     elif float_count_filters:
-        queryset = common_count_filter(float_count_filters, base_queryset, queryset, ordered_fields)
+        queryset, total = common_count_filter(float_count_filters, base_queryset, queryset, ordered_fields, total=True)
     else:
         if order_by == 'count' or order_by == '-count':
             order_by = 'ID'
@@ -253,6 +254,7 @@ def ticket_logging(request):
         'join_model_instance': TicketLogging.join_model_instance if hasattr( TicketLogging, 'join_model_instance') else None,
         'selected_rows': selected_rows,
         'selected_rows_qs': software_list.filter(ID__in=selected_rows),
+        'total_count': total,
 
         # snapshots
         'snapshots': snapshots,

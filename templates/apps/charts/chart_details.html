@@ -178,8 +178,8 @@
             </div>
             <div class="p-4 md:p-5">
                 <div class="mb-3">
-                    <label for="prompt" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Prompt</label>
-                    <textarea name="custom_prompt" id="custom_prompt_all" rows="3" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="If you have any additional instructions for grAic, please type here."></textarea>
+                    <label for="prompt" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Additional Instruction to grAIc</label>
+                    <textarea name="custom_prompt" id="custom_prompt_all" rows="3" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="If you have any additional instructions for grAic, please type here.">{{ chart_prompt.prompt|default_if_none:"" }}</textarea>
                 </div>
 
                 <div class="flex justify-between items-center gap-5">
@@ -659,6 +659,9 @@
 </script>
 
 <script>
+    
+    const chartPrompt = "{{ chart_prompt.prompt|default_if_none:''|escapejs }}";
+
     function openDeleteModal(id) {
         const modalRoot = document.getElementById("modal-root");
 
@@ -832,8 +835,8 @@
                     <div class="p-4 md:p-5">
                         
                         <div class="mb-3">
-                            <label for="prompt" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Prompt</label>
-                            <textarea id="custom_prompt_${id}" name="custom_prompt" rows="3" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="If you have any additional instructions for grAic, please type here."></textarea>
+                            <label for="prompt" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Additional Instruction to grAIc</label>
+                            <textarea id="custom_prompt_${id}" name="custom_prompt" rows="3" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="If you have any additional instructions for grAic, please type here.">${chartPrompt}</textarea>
                         </div>
 
                         <div class="flex justify-between items-center gap-5">
@@ -884,8 +887,8 @@
                     <div class="p-4 md:p-5">
                         
                         <div class="mb-3">
-                            <label for="prompt" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Prompt</label>
-                            <textarea id="custom_prompt_${id}" name="custom_prompt" rows="3" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="If you have any additional instructions for grAic, please type here."></textarea>
+                            <label for="prompt" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Additional Instruction to grAIc</label>
+                            <textarea id="custom_prompt_${id}" name="custom_prompt" rows="3" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="If you have any additional instructions for grAic, please type here.">${chartPrompt}</textarea>
                         </div>
                         <div class="mb-4">
                             <label class="block mb-2 text-sm font-medium">Frequency</label>
