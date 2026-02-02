@@ -28,4 +28,8 @@ app.conf.beat_schedule = {
         "task": "apps.tables.charts.charts_views.run_scheduled_chart_exports",
         "schedule": 60.0,
     },
+    "check_risk_export_every_minute": {
+        "task": "apps.tables.risk_card.risk_card_views.run_scheduled_risk_exports",
+        "schedule": 60.0,
+    },
 }

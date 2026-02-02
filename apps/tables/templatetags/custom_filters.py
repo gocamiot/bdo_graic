@@ -4,6 +4,7 @@ from django import template
 from home.models import JoinModel
 from django.apps import apps
 from django.shortcuts import get_object_or_404
+from apps.tables.forms import RecommendationForm
 
 register = template.Library()
 
@@ -103,3 +104,17 @@ def extract_table_data(value):
 
     except Exception as e:
         return {'columns': [], 'data': [], 'error': str(e)}
+    
+
+@register.filter
+def dict_get(d, key):
+    return d.get(key, [])
+
+
+@register.simple_tag
+def recommendation_form(risk_card):
+    return RecommendationForm(
+        initial={
+            'audit_recommendation': risk_card.audit_recommendation if risk_card else None
+        }
+    )

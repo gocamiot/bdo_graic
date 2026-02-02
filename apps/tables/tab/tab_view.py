@@ -3,7 +3,7 @@ import csv
 from django.contrib.contenttypes.models import ContentType
 from apps.common.models import SavedFilter, FieldType
 from django.http import HttpResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
 from apps.tables.utils import (
@@ -14,7 +14,7 @@ from apps.tables.utils import (
 from apps.tables.models import (
     PageItems, HideShowFilter,  ModelChoices, 
     Tab, ActionStatus, SelectedRows, TabNotes,
-    BaseCharts
+    BaseCharts, RiskAssessment, ChartType2
 )
 from django.http import HttpResponse
 from django.urls import reverse
@@ -29,7 +29,8 @@ from django.db.models import F, Case, When, IntegerField
 from openpyxl import Workbook
 from django.views import View
 from home.models import ColumnOrder
-from apps.tables.forms import TabNotesForm
+from apps.tables.forms import TabNotesForm, RecommendationForm
+from apps.tables.choices import *
 
 
 def get_user_id(request):
@@ -527,17 +528,18 @@ def tab_details(request, id):
     if float_query_conditions:
         queryset = queryset.filter(float_query_conditions)
 
+    total = 0
     if user_count_filters:
-        queryset = common_count_filter(user_count_filters, base_queryset, queryset, ordered_fields)
+        queryset, total = common_count_filter(user_count_filters, base_queryset, queryset, ordered_fields, total=True)
     elif date_count_filters:
-        queryset = common_count_filter(date_count_filters, base_queryset, queryset, ordered_fields)
+        queryset, total = common_count_filter(date_count_filters, base_queryset, queryset, ordered_fields, total=True)
     elif int_count_filters:
-        queryset = common_count_filter(int_count_filters, base_queryset, queryset, ordered_fields)
+        queryset, total = common_count_filter(int_count_filters, base_queryset, queryset, ordered_fields, total=True)
     elif float_count_filters:
-        queryset = common_count_filter(float_count_filters, base_queryset, queryset, ordered_fields)
+        queryset, total = common_count_filter(float_count_filters, base_queryset, queryset, ordered_fields, total=True)
     else:
-        if order_by in ['count', '-count']:
-            order_by = 'pk'
+        if order_by == 'count' or order_by == '-count':
+            order_by = 'ID'
 
     order_by = order_by or 'pk'
     queryset = queryset.order_by(order_by)
@@ -605,6 +607,11 @@ def tab_details(request, id):
         if f not in tab_model.integer_fields + tab_model.float_fields + (['count'] if 'count' in db_field_names else []) + ['ID', 'loader_instance', 'json_data', 'hash_data', 'fts']
     ]
 
+    risk_card = RiskAssessment.objects.filter(parent_tab=tab).first()
+    risk_card_business_codes = []
+    if risk_card:
+        risk_card_business_codes = list(risk_card.business_impacts.values_list('code', flat=True))
+
     context = {
         'tab': tab,
         'segment': tab.base_view,
@@ -627,7 +634,8 @@ def tab_details(request, id):
         'saved_filters': saved_filters_json,
         'saved_filters_len': len(saved_filters),
         'tabs': Tab.objects.filter(base_view=tab.base_view).order_by('created_at'),
-        'charts': BaseCharts.objects.filter(base_view=tab.base_view),
+        'charts': BaseCharts.objects.filter(base_view=tab.base_view, chart_type=ChartType2.BASE_CHART),
+        'risk_charts': BaseCharts.objects.filter(base_view=tab.base_view, chart_type=ChartType2.RISK_CHART),
         'unique_filter': list(set(user_unique_filter + date_unique_filter + int_unique_filter + float_unique_filter)),
         'table_name': tab.content_type.model,
         'selected_rows': selected_rows,
@@ -637,7 +645,20 @@ def tab_details(request, id):
         'tab_notes': tab_notes,
         'notes_form': TabNotesForm(initial={'notes': tab_notes.note}),
         'y_fields': y_fields,
-        'x_fields': x_fields
+        'x_fields': x_fields,
+        'risk_card': risk_card,
+        'risk_card_business_codes': risk_card_business_codes,
+
+        'recommendation_form': RecommendationForm(initial={'audit_recommendation': risk_card.audit_recommendation if risk_card else None}),
+        'inherent_impact': InherentImpact.choices,
+        'likelihood': Likelihood.choices,
+        'residual_risk': ResidualRiskRating.choices,
+        'confidence': ConfidenceInResults.choices,
+        'primary_root_cause': PrimaryRootCause.choices,
+        'secondary_root_cause': SecondaryRootCause.choices,
+        'business_impact': BusinessImpact.choices,
+        'recommended_owner_role': OwnerRole.choices,
+        'total_count': total,
     }
     return render(request, 'apps/tab/tab_details.html', context)
 

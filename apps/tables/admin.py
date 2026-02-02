@@ -2,7 +2,8 @@ from django.contrib import admin
 from .models import (
     TableDropdownItem, TableDropdownSubItem, HideShowFilter, DynamicQuery, 
     ExternalDatabase, TemporaryTable, ExportDB, ExportLog, Finding,
-    Image, ImageLoader, FindingAction, Tab, BaseCharts, TabCharts, ScheduledChartExport
+    Image, ImageLoader, FindingAction, Tab, BaseCharts, TabCharts, ScheduledChartExport,
+    BusinessImpactItem, RiskAssessment, ScoreCard, ScheduledRiskExport
 )
 
 # Register your models here.
@@ -60,3 +61,51 @@ admin.site.register(Tab)
 admin.site.register(BaseCharts)
 admin.site.register(TabCharts)
 admin.site.register(ScheduledChartExport)
+
+admin.site.register(BusinessImpactItem)
+@admin.register(RiskAssessment)
+class RiskAssessmentAdmin(admin.ModelAdmin):
+    fieldsets = (
+        (
+            "General",
+            {
+                "fields": (
+                    "base_chart",
+                    "parent_tab",
+                    "name",
+                )
+            },
+        ),
+        (
+            "Risk Classifications",
+            {
+                "fields": (
+                    "inherent_impact",
+                    "likelihood",
+                    "residual_risk",
+                    "confidence",
+                )
+            },
+        ),
+        (
+            "Root Cause & Impact Assessment",
+            {
+                "fields": (
+                    "primary_root_cause",
+                    "secondary_root_cause",
+                    "business_impacts",
+                    "audit_recommendation",
+                    "recommended_owner_role",
+                    "target_remediation_date",
+                    "management_response",
+                    "agreed_action_plan",
+                )
+            },
+        ),
+    )
+
+    filter_horizontal = ("business_impacts",)
+
+
+admin.site.register(ScoreCard)
+admin.site.register(ScheduledRiskExport)
