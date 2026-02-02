@@ -15,6 +15,7 @@ from django_quill.fields import QuillField
 from PIL import Image as PILImage
 from django.contrib.postgres.search import SearchVectorField
 from django.core.exceptions import ValidationError
+from apps.tables.choices import *
 
 try:
     from pgvector.django import VectorField
@@ -267,6 +268,10 @@ class TabNotes(models.Model):
     updated_at = models.DateTimeField(null=True, blank=True)
 
 
+class ChartType2(models.TextChoices):
+    BASE_CHART = 'BASE_CHART', 'Base Chart'
+    RISK_CHART = 'RISK_CHART', 'Risk Chart'
+
 class BaseCharts(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     base_view = models.TextField()
@@ -275,6 +280,7 @@ class BaseCharts(models.Model):
         on_delete=models.CASCADE,
         null=True
     )
+    chart_type = models.CharField(max_length=100, choices=ChartType2.choices, default=ChartType2.BASE_CHART)
     name = models.TextField(max_length=255, default="Charts")
     saved_filters = models.ManyToManyField('common.SavedFilter', blank=True)
     created_at = models.DateTimeField(null=True, blank=True)
@@ -313,6 +319,9 @@ class TabCharts(models.Model):
         verbose_name = "Tab Chart"
         verbose_name_plural = "Tab Charts"
 
+class ChartPrompt(models.Model):
+    base_chart = models.OneToOneField(BaseCharts, on_delete=models.CASCADE)
+    prompt = models.TextField(null=True, blank=True)
 
 class ScheduledChartExport(models.Model):
     EXPORT_TYPE_CHOICES = (
@@ -352,6 +361,117 @@ class ScheduledChartExport(models.Model):
 
     def __str__(self):
         return f"{self.chart.name} ({self.frequency})"
+
+class BusinessImpactItem(models.Model):
+    code = models.CharField(
+        max_length=50,
+        choices=BusinessImpact.choices,
+        unique=True
+    )
+
+    def __str__(self):
+        return self.get_code_display()
+
+class RiskAssessment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    base_chart = models.ForeignKey(BaseCharts, on_delete=models.CASCADE)
+    parent_tab = models.OneToOneField(Tab, on_delete=models.CASCADE)
+    name = models.TextField(max_length=255)
+    inherent_impact = models.CharField(
+        max_length=20,
+        choices=InherentImpact.choices
+    )
+    likelihood = models.CharField(
+        max_length=20,
+        choices=Likelihood.choices
+    )
+    residual_risk = models.CharField(
+        max_length=20,
+        choices=ResidualRiskRating.choices
+    )
+    confidence = models.CharField(
+        max_length=20,
+        choices=ConfidenceInResults.choices
+    )
+    primary_root_cause = models.CharField(
+        max_length=50,
+        choices=PrimaryRootCause.choices
+    )
+    secondary_root_cause = models.CharField(
+        max_length=50,
+        choices=SecondaryRootCause.choices,
+        null=True,
+        blank=True
+    )
+
+    business_impacts = models.ManyToManyField(
+        BusinessImpactItem,
+        blank=True
+    )
+    audit_recommendation = QuillField(null=True, blank=True)
+    recommended_owner_role = models.CharField(
+        max_length=20,
+        choices=OwnerRole.choices
+    )
+
+    target_remediation_date = models.DateField()
+
+    management_response = models.TextField(null=True, blank=True)
+    agreed_action_plan = models.TextField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+    def __str__(self):
+        return self.name
+
+class ScoreCard(models.Model):
+    risk_card = models.OneToOneField(RiskAssessment, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.risk_card.name
+
+class ScheduledRiskExport(models.Model):
+    EXPORT_TYPE_CHOICES = (
+        ("docx", "DOCX"),
+        ("pdf", "PDF"),
+    )
+
+    FREQUENCY_CHOICES = (
+        ("once", "One time"),
+        ("hourly", "Hourly"),
+        ("daily", "Daily"),
+        ("weekly", "Weekly"),
+        ("monthly", "Monthly"),
+    )
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    risk = models.ForeignKey(RiskAssessment, on_delete=models.CASCADE)
+
+    chart_image = models.TextField(blank=True, null=True)
+    export_type = models.CharField(max_length=10, choices=EXPORT_TYPE_CHOICES)
+    export_option = models.CharField(max_length=10, default="grc")
+
+    frequency = models.CharField(max_length=10, choices=FREQUENCY_CHOICES)
+    start_at = models.DateTimeField()
+    end_at = models.DateTimeField(null=True, blank=True)
+
+    hour_interval = models.PositiveIntegerField(null=True, blank=True)
+    time_of_day = models.TimeField(null=True, blank=True)
+    weekdays = models.JSONField(default=list, blank=True)
+    month_day = models.PositiveSmallIntegerField(null=True, blank=True)
+
+    custom_prompt = models.TextField(blank=True)
+
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    last_run_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.risk.name} ({self.frequency})"
 
 class EmailActionStatus(models.TextChoices):
     OPEN = 'OPEN', 'Open'

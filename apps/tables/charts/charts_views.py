@@ -5,7 +5,8 @@ from django.shortcuts import redirect, get_object_or_404, render
 from apps.tables.models import (
     Tab, BaseCharts, TabCharts,
     SelectedRows, ModelChoices,
-    ActionStatus, DocumentStatus
+    ActionStatus, DocumentStatus,
+    ChartPrompt, ChartType2
 )
 from apps.tables.utils import (
     software_filter, same_key_filter, common_date_filter,
@@ -143,10 +144,16 @@ def add_chart(request, tab_id):
         chart_type = request.POST.get('chart_type')
         color = request.POST.get('color')
 
-        base_chart, created = BaseCharts.objects.get_or_create(base_view=base_view)
+        base_chart, created = BaseCharts.objects.get_or_create(
+            base_view=base_view,
+            chart_type=ChartType2.BASE_CHART
+        )
         if created:
             base_chart.content_type = tab.content_type
             base_chart.save()
+        
+        if base_chart:
+            ChartPrompt.objects.get_or_create(base_chart=base_chart)
 
         TabCharts.objects.create(
             base_chart=base_chart,
@@ -167,6 +174,8 @@ def add_chart(request, tab_id):
 
 def chart_details(request, chart_id):
     base_chart = get_object_or_404(BaseCharts, id=chart_id)
+    chart_prompt, created = ChartPrompt.objects.get_or_create(base_chart=base_chart)
+    
     chart_model = None
     pre_column = ('loader_instance', 'ID', 'json_data', 'fts', 'hash_data')
 
@@ -446,12 +455,14 @@ def chart_details(request, chart_id):
     context = {
         'base_chart': base_chart,
         'tabs': Tab.objects.filter(base_view=base_chart.base_view).order_by('created_at'),
-        'charts': BaseCharts.objects.filter(base_view=base_chart.base_view),
+        'charts': BaseCharts.objects.filter(base_view=base_chart.base_view, chart_type=ChartType2.BASE_CHART),
+        'risk_charts': BaseCharts.objects.filter(base_view=base_chart.base_view, chart_type=ChartType2.RISK_CHART),
         'chart_data': json.dumps(chart_data, cls=DjangoJSONEncoder),
         'base_fields': base_fields,
         'join_model_instance': None,
         'base_saved_filters_json': base_saved_filters_json,
-        'chart_ids': chart_ids
+        'chart_ids': chart_ids,
+        'chart_prompt': chart_prompt
     }
     return render(request, 'apps/charts/chart_details.html', context)
 
@@ -524,6 +535,142 @@ def filter_text(saved_filters):
     """Return list of formatted filter strings."""
     return [format_filter(f) for f in saved_filters]
 
+from django.utils.html import strip_tags
+
+def quill_delta_to_text(value):
+    if not value:
+        return ""
+
+    try:
+        value = strip_tags(value or "").strip()
+        if isinstance(value, dict):
+            delta = value
+        else:
+            delta = json.loads(value)
+
+        text = []
+        for op in delta.get("ops", []):
+            insert = op.get("insert")
+            if isinstance(insert, str):
+                text.append(insert)
+
+        return "".join(text).strip()
+    except Exception:
+        return ""
+
+import re
+from docx.shared import Pt
+
+def add_ai_analysis_dynamic_docx(doc, text):
+    """
+    Dynamically formats AI analysis text:
+    - Headings are detected, bold only
+    - Body text stays normal
+    - Bullets and numbered lines preserved
+    """
+    if not text:
+        doc.add_paragraph("No analysis available.")
+        return
+
+    lines = [str(l).strip() for l in text.split("\n") if l and str(l).strip()]
+
+    for line in lines:
+        stripped = line.rstrip(":").strip()
+
+        is_heading = (
+            line.endswith(":") or
+            (stripped.isupper() and len(stripped) > 1)
+        )
+
+        # Heading
+        if is_heading:
+            p = doc.add_paragraph()
+            run = p.add_run(stripped)
+            run.bold = True
+            run.font.size = Pt(12)
+            continue
+
+        # Bullet or numbered line
+        if line.startswith("•") or re.match(r"\d+\)", line):
+            p = doc.add_paragraph(line, style="List Bullet")
+            continue
+
+        # Normal body text
+        p = doc.add_paragraph()
+        run = p.add_run(line)
+        run.bold = False
+        run.font.size = Pt(11)
+
+def add_ai_analysis_dynamic_pdf(p, text, y, height, x=50, wrap_width=90):
+    """
+    Draw AI analysis dynamically:
+    - Headings bold only
+    - Body normal
+    - Handles page breaks
+    """
+    if not text:
+        p.setFont("Helvetica", 12)
+        p.drawString(x, y, "No analysis available.")
+        return y - 15
+
+    lines = [l.strip() for l in text.split("\n") if l.strip()]
+
+    for line in lines:
+        stripped = line.rstrip(":").strip()
+
+        is_heading = (
+            line.endswith(":") or
+            (stripped.isupper() and len(stripped) > 1)
+        )
+
+        if is_heading:
+            p.setFont("Helvetica-Bold", 13)
+            wrapped = textwrap.wrap(stripped, wrap_width)
+        else:
+            p.setFont("Helvetica", 12)
+            wrapped = textwrap.wrap(line, wrap_width)
+
+        for w in wrapped:
+            if y < 50:
+                p.showPage()
+                p.setFont("Helvetica", 12)
+                y = height - 50
+
+            p.drawString(x, y, w)
+            y -= 15
+
+        y -= 5  # spacing between blocks
+
+    return y
+
+def normalize_ai_text(text):
+    """
+    Converts markdown-like AI output into renderer-safe plain text
+    with clean section breaks.
+    """
+
+    # Remove markdown bold
+    text = text.replace("**", "")
+
+    # Force known headings onto their own lines
+    headings = [
+        "Summary of what the chart shows",
+        "Risks and why this matters",
+        "Recommended next steps",
+        "Investigation:",
+        "Remediation:",
+    ]
+
+    for h in headings:
+        text = re.sub(rf"{h}\s*-?", f"\n\n{h}\n", text)
+
+    # Convert bullet points to sentences with spacing
+    text = re.sub(r"\n\s*-\s*", "\n• ", text)
+
+    # Collapse excessive newlines
+    text = re.sub(r"\n{3,}", "\n\n", text)
+
+    return text.strip()
 
 def export_chart_docx(request):
     agent_data = get_agent("chart_agent")
@@ -536,7 +683,13 @@ def export_chart_docx(request):
     image_data = request.POST.get("chart_image", "")
     chart_id = request.POST.get("chart_id", "")
     chart = get_object_or_404(TabCharts, id=chart_id)
+    base_chart = chart.base_chart
+    ChartPrompt.objects.update_or_create(
+        base_chart=base_chart,
+        defaults={'prompt': custom_prompt}
+    )
 
+    note = chart.parent_tab.tabnotes.note
     saved_filters = SavedFilter.objects.filter(
         userID=get_user_id(request),
         parent=ModelChoices.TAB,
@@ -553,11 +706,20 @@ def export_chart_docx(request):
     if custom_prompt:
         system_prompt = f"{system_prompt}\n\n{custom_prompt}"
 
-    full_prompt = (
-        f"{current_dt}\n\n{system_prompt}\n\n"
-        f"{agent_data.get('instruction', '')}\n\n"
-        f"Applied Filters:\n{filters_str}"
-    )
+    parts = [
+        f"{current_dt}",
+        system_prompt,
+        agent_data.get("instruction", ""),
+    ]
+
+    clean_note = quill_delta_to_text(note)
+
+    if clean_note:
+        parts.append(f"Manual notes from auditor:\n{clean_note}")
+
+    parts.append(f"Applied Filters:\n{filters_str}")
+
+    full_prompt = "\n\n".join(parts)
 
     ai_analysis = api_engine(
         prompt=full_prompt,
@@ -580,8 +742,20 @@ def export_chart_docx(request):
     else:
         doc.add_paragraph("No filters applied.")
 
+    doc.add_heading("Notes", level=2)
+    if clean_note:
+        doc.add_paragraph(clean_note)
+    else:
+        doc.add_paragraph("No notes applied.")
+    
+    doc.add_heading("Additional Instruction to grAIc", level=2)
+    if custom_prompt:
+        doc.add_paragraph(custom_prompt)
+    else:
+        doc.add_paragraph("No additional instructions applied.")
+
     doc.add_heading("grAIc Analysis", level=2)
-    doc.add_paragraph(ai_analysis)
+    add_ai_analysis_dynamic_docx(doc, ai_analysis)
 
     output = BytesIO()
     doc.save(output)
@@ -618,6 +792,12 @@ def export_chart_pdf(request):
     image_data = request.POST.get("chart_image", "")
     chart_id = request.POST.get("chart_id", "")
     chart = get_object_or_404(TabCharts, id=chart_id)
+    base_chart = chart.base_chart
+    ChartPrompt.objects.update_or_create(
+        base_chart=base_chart,
+        defaults={'prompt': custom_prompt}
+    )
+    note = chart.parent_tab.tabnotes.note
 
     if not image_data or not image_data.startswith("data:image"):
         return HttpResponse("Invalid image", status=400)
@@ -635,11 +815,19 @@ def export_chart_pdf(request):
     if custom_prompt:
         system_prompt = f"{system_prompt}\n\n{custom_prompt}"
 
-    full_prompt = (
-        f"{current_dt}\n\n{system_prompt}\n\n"
-        f"{agent_data.get('instruction', '')}\n\n"
-        f"Applied Filters:\n{filters_str}"
-    )
+    parts = [
+        f"{current_dt}",
+        system_prompt,
+        agent_data.get("instruction", ""),
+    ]
+
+    clean_note = quill_delta_to_text(note)
+
+    if clean_note:
+        parts.append(f"Manual notes from auditor:\n{clean_note}")
+
+    parts.append(f"Applied Filters:\n{filters_str}")
+    full_prompt = "\n\n".join(parts)
 
     ai_analysis = api_engine(
         prompt=full_prompt,
@@ -671,19 +859,42 @@ def export_chart_pdf(request):
             p.drawString(50, y_pos, line)
             y_pos -= 15
 
+    y_pos -= 20
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(50, y_pos, "Notes:")
+    y_pos -= 20
+
+    p.setFont("Helvetica", 12)
+
+    note_text = clean_note if clean_note else "No Notes applied."
+
+    for wrapped_line in textwrap.wrap(note_text, width=90):
+        p.drawString(50, y_pos, wrapped_line)
+        y_pos -= 15
+
+    y_pos -= 20
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(50, y_pos, "Additional Instructions:")
+    y_pos -= 20
+
+    p.setFont("Helvetica", 12)
+    
+    note_text = custom_prompt if custom_prompt else "No additional instructions applied."
+
+    for wrapped_line in textwrap.wrap(note_text, width=90):
+        p.drawString(50, y_pos, wrapped_line)
+        y_pos -= 15 
     y_pos -= 10
     p.setFont("Helvetica-Bold", 14)
     p.drawString(50, y_pos, "grAIc Analysis:")
     y_pos -= 20
-    p.setFont("Helvetica", 12)
-    for line in ai_analysis.split("\n"):
-        for wrapped_line in textwrap.wrap(line, width=90):
-            p.drawString(50, y_pos, wrapped_line)
-            y_pos -= 15
-            if y_pos < 50:
-                p.showPage()
-                y_pos = height - 50
-                p.setFont("Helvetica", 12)
+    clean_ai_text = normalize_ai_text(ai_analysis)
+    y_pos = add_ai_analysis_dynamic_pdf(
+    p,
+    clean_ai_text,
+    y_pos,
+    height
+)
 
     p.showPage()
     p.save()
@@ -727,6 +938,13 @@ def export_charts_docx_bulk(request):
 
     for chart_id in chart_ids:
         chart = get_object_or_404(TabCharts, id=chart_id)
+        base_chart = chart.base_chart
+        ChartPrompt.objects.update_or_create(
+            base_chart=base_chart,
+            defaults={'prompt': custom_prompt}
+        )
+        note = chart.parent_tab.tabnotes.note
+    
         saved_filters = SavedFilter.objects.filter(
             userID=get_user_id(request),
             parent=ModelChoices.TAB,
@@ -752,15 +970,37 @@ def export_charts_docx_bulk(request):
         else:
             doc.add_paragraph("No filters applied.")
 
+        doc.add_heading("Notes", level=2)
+        if clean_note:
+            doc.add_paragraph(clean_note)
+        else:
+            doc.add_paragraph("No notes applied.")
+            
+        doc.add_heading("Additional Instruction to grAIc", level=2)
+        if custom_prompt:
+            doc.add_paragraph(custom_prompt)
+        else:
+            doc.add_paragraph("No additional instructions applied.")
+
+
         system_prompt = agent_data['system_prompt']
         if custom_prompt:
             system_prompt = f"{system_prompt}\n\n{custom_prompt}"
-        
-        full_prompt = (
-            f"{current_dt}\n\n{system_prompt}\n\n"
-            f"{agent_data.get('instruction', '')}\n\n"
-            f"Applied Filters:\n{filters_str}"
-        )
+
+        parts = [
+            f"{current_dt}",
+            system_prompt,
+            agent_data.get("instruction", ""),
+        ]
+
+        clean_note = quill_delta_to_text(note)
+
+        if clean_note:
+            parts.append(f"Manual notes from auditor:\n{clean_note}")
+
+        parts.append(f"Applied Filters:\n{filters_str}")
+
+        full_prompt = "\n\n".join(parts)
 
         ai_analysis = api_engine(
             prompt=full_prompt,
@@ -770,7 +1010,7 @@ def export_charts_docx_bulk(request):
         )
 
         doc.add_heading("grAIc Analysis", level=2)
-        doc.add_paragraph(ai_analysis)
+        add_ai_analysis_dynamic_docx(doc, ai_analysis)
 
         doc.add_page_break()
 
@@ -825,6 +1065,13 @@ def export_charts_pdf_bulk(request):
 
     for chart_id in chart_ids:
         chart = get_object_or_404(TabCharts, id=chart_id)
+        base_chart = chart.base_chart
+        ChartPrompt.objects.update_or_create(
+            base_chart=base_chart,
+            defaults={'prompt': custom_prompt}
+        )
+        note = chart.parent_tab.tabnotes.note
+
         saved_filters = SavedFilter.objects.filter(
             userID=get_user_id(request),
             parent=ModelChoices.TAB,
@@ -869,11 +1116,20 @@ def export_charts_pdf_bulk(request):
         if custom_prompt:
             system_prompt = f"{system_prompt}\n\n{custom_prompt}"
 
-        full_prompt = (
-            f"{current_dt}\n\n{agent_data['system_prompt']}\n\n"
-            f"{agent_data.get('instruction', '')}\n\n"
-            f"Applied Filters:\n{filters_str}"
-        )
+        parts = [
+            f"{current_dt}",
+            system_prompt,
+            agent_data.get("instruction", ""),
+        ]
+
+        clean_note = quill_delta_to_text(note)
+
+        if clean_note:
+            parts.append(f"Manual notes from auditor:\n{clean_note}")
+
+        parts.append(f"Applied Filters:\n{filters_str}")
+
+        full_prompt = "\n\n".join(parts)
 
         ai_analysis = api_engine(
             prompt=full_prompt,
@@ -882,19 +1138,43 @@ def export_charts_pdf_bulk(request):
             image_data=img_data
         )
 
+        y_pos -= 20
+        p.setFont("Helvetica-Bold", 14)
+        p.drawString(50, y_pos, "Notes:")
+        y_pos -= 20
+
+        p.setFont("Helvetica", 12)
+
+        note_text = clean_note if clean_note else "No Notes applied."
+
+        for wrapped_line in textwrap.wrap(note_text, width=90):
+            p.drawString(50, y_pos, wrapped_line)
+            y_pos -= 15
+
+        y_pos -= 20
+        p.setFont("Helvetica-Bold", 14)
+        p.drawString(50, y_pos, "Additional Instructions:")
+        y_pos -= 20
+
+        p.setFont("Helvetica", 12)
+        
+        note_text = custom_prompt if custom_prompt else "No additional instructions applied."
+
+        for wrapped_line in textwrap.wrap(note_text, width=90):
+            p.drawString(50, y_pos, wrapped_line)
+            y_pos -= 15
+
         y_position -= 10
         p.setFont("Helvetica-Bold", 14)
         p.drawString(50, y_position, "grAIc Analysis:")
         y_position -= 20
-        p.setFont("Helvetica", 12)
-        for line in ai_analysis.split("\n"):
-            for wrapped_line in textwrap.wrap(line, width=90):
-                p.drawString(50, y_position, wrapped_line)
-                y_position -= 15
-                if y_position < 50:
-                    p.showPage()
-                    y_position = height - 50
-                    p.setFont("Helvetica", 12)
+        clean_ai_text = normalize_ai_text(ai_analysis)
+        y_pos = add_ai_analysis_dynamic_pdf(
+        p,
+        clean_ai_text,
+        y_pos,
+        height
+    )
 
         p.showPage()
 
@@ -1017,6 +1297,7 @@ def generate_chart_export(
 ):
     chart = get_object_or_404(TabCharts, id=chart_id)
     schedule = get_object_or_404(ScheduledChartExport, id=schedule_id)
+    note = chart.parent_tab.tabnotes.note
 
     image_data = generate_chart_image(schedule)
     if not image_data.startswith("data:image"):
@@ -1040,11 +1321,25 @@ def generate_chart_export(
     if custom_prompt:
         system_prompt = f"{system_prompt}\n\n{custom_prompt}"
 
-    full_prompt = (
-        f"{current_dt}\n\n{system_prompt}\n\n"
-        f"{agent_data.get('instruction', '')}\n\n"
-        f"Applied Filters:\n{filters_str}"
-    )
+        base_chart = chart.base_chart
+        ChartPrompt.objects.update_or_create(
+            base_chart=base_chart,
+            defaults={'prompt': custom_prompt}
+        )
+
+    parts = [
+        f"{current_dt}",
+        system_prompt,
+        agent_data.get("instruction", ""),
+    ]
+
+    clean_note = quill_delta_to_text(note)
+
+    if clean_note:
+        parts.append(f"Manual notes from auditor:\n{clean_note}")
+
+    parts.append(f"Applied Filters:\n{filters_str}")
+    full_prompt = "\n\n".join(parts)
 
     ai_analysis = api_engine(
         prompt=full_prompt,
@@ -1060,15 +1355,15 @@ def generate_chart_export(
 
     if export_type == "docx":
         return _build_docx(
-            chart, image_bytes, filter_texts, ai_analysis, user, export_option, timestamp
+            chart, image_bytes, filter_texts, ai_analysis, user, export_option, timestamp, clean_note, custom_prompt
         )
 
     return _build_pdf(
-        chart, image_bytes, filter_texts, ai_analysis, user, export_option, timestamp
+        chart, image_bytes, filter_texts, ai_analysis, user, export_option, timestamp, clean_note, custom_prompt
     )
 
 
-def _build_docx(chart, image_bytes, filter_texts, ai_analysis, user, export_option, timestamp):
+def _build_docx(chart, image_bytes, filter_texts, ai_analysis, user, export_option, timestamp, clean_note, custom_prompt):
     doc = Document()
     doc.add_heading(f"GRC {chart.name} Report - {timestamp}", level=1)
     doc.add_picture(BytesIO(image_bytes), width=Inches(6))
@@ -1077,8 +1372,20 @@ def _build_docx(chart, image_bytes, filter_texts, ai_analysis, user, export_opti
     for text in filter_texts or ["No filters applied."]:
         doc.add_paragraph(text)
 
+    doc.add_heading("Notes", level=2)
+    if clean_note:
+        doc.add_paragraph(clean_note)
+    else:
+        doc.add_paragraph("No notes applied.")
+    
+    doc.add_heading("Additional Instruction to grAIc", level=2)
+    if custom_prompt:
+        doc.add_paragraph(custom_prompt)
+    else:
+        doc.add_paragraph("No additional instructions applied.")
+
     doc.add_heading("grAIc Analysis", level=2)
-    doc.add_paragraph(ai_analysis)
+    add_ai_analysis_dynamic_docx(doc, ai_analysis)
 
     output = BytesIO()
     doc.save(output)
@@ -1091,7 +1398,7 @@ def _build_docx(chart, image_bytes, filter_texts, ai_analysis, user, export_opti
 
     return output.getvalue(), filename
 
-def _build_pdf(chart, image_bytes, filter_texts, ai_analysis, user, export_option, timestamp):
+def _build_pdf(chart, image_bytes, filter_texts, ai_analysis, user, export_option, timestamp, clean_note, custom_prompt):
     buffer = BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
@@ -1112,19 +1419,38 @@ def _build_pdf(chart, image_bytes, filter_texts, ai_analysis, user, export_optio
             p.drawString(50, y, line)
             y -= 15
 
+    y -= 20
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(50, y, "Notes:")
+    y -= 20
+
+    p.setFont("Helvetica", 12)
+
+    note_text = clean_note if clean_note else "No Notes applied."
+
+    for wrapped_line in textwrap.wrap(note_text, width=90):
+        p.drawString(50, y, wrapped_line)
+        y -= 15
+
+    y -= 20
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(50, y, "Additional Instructions:")
+    y -= 20
+
+    p.setFont("Helvetica", 12)
+    
+    note_text = custom_prompt if custom_prompt else "No additional instructions applied."
+
+    for wrapped_line in textwrap.wrap(note_text, width=90):
+        p.drawString(50, y, wrapped_line)
+        y -= 15
+
     y -= 10
     p.setFont("Helvetica-Bold", 14)
     p.drawString(50, y, "grAIc Analysis:")
     y -= 20
 
-    p.setFont("Helvetica", 12)
-    for line in ai_analysis.split("\n"):
-        for wrapped in textwrap.wrap(line, 90):
-            if y < 50:
-                p.showPage()
-                y = height - 50
-            p.drawString(50, y, wrapped)
-            y -= 15
+    y = add_ai_analysis_dynamic_pdf(p, ai_analysis, y, height)
 
     p.save()
     pdf = buffer.getvalue()
