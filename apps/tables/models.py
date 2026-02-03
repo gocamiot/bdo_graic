@@ -372,6 +372,13 @@ class BusinessImpactItem(models.Model):
     def __str__(self):
         return self.get_code_display()
 
+
+class OwnerRole(models.Model):
+    name = models.CharField(max_length=100, choices=OwnerRoleChoices.choices, unique=True)
+
+    def __str__(self):
+        return self.name
+
 class RiskAssessment(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     base_chart = models.ForeignKey(BaseCharts, on_delete=models.CASCADE)
@@ -404,15 +411,11 @@ class RiskAssessment(models.Model):
         blank=True
     )
 
-    business_impacts = models.ManyToManyField(
-        BusinessImpactItem,
-        blank=True
-    )
+    business_impacts = models.ManyToManyField(BusinessImpactItem, blank=True)
+    recommended_owner_role = models.ManyToManyField(OwnerRole, blank=True)
+
     audit_recommendation = QuillField(null=True, blank=True)
-    recommended_owner_role = models.CharField(
-        max_length=20,
-        choices=OwnerRole.choices
-    )
+    description = QuillField(null=True, blank=True)
 
     target_remediation_date = models.DateField()
 

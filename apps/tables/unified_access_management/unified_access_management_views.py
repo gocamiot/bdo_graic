@@ -25,7 +25,7 @@ from apps.tables.models import (
     ModelChoices, 
     UnifiedAccessManagement,
     Tab, SelectedRows,
-    BaseCharts
+    BaseCharts, ChartType2
 )
 from home.models import ColumnOrder
 from apps.common.models import SavedFilter, FieldType
@@ -250,7 +250,8 @@ def unified_access_management(request):
         'fields': fields,
         'saved_filters': saved_filters_json,
         'tabs': Tab.objects.filter(base_view='unified_access_management').order_by('created_at'),
-        'charts': BaseCharts.objects.filter(base_view='unified_access_management'),
+        'charts': BaseCharts.objects.filter(base_view='unified_access_management', chart_type=ChartType2.BASE_CHART),
+        'risk_charts': BaseCharts.objects.filter(base_view='unified_access_management', chart_type=ChartType2.RISK_CHART),
         'join_model_instance': UnifiedAccessManagement.join_model_instance if hasattr( UnifiedAccessManagement, 'join_model_instance') else None,
         'selected_rows': selected_rows,
         'selected_rows_qs': software_list.filter(ID__in=selected_rows),

@@ -3,7 +3,7 @@ from .models import (
     TableDropdownItem, TableDropdownSubItem, HideShowFilter, DynamicQuery, 
     ExternalDatabase, TemporaryTable, ExportDB, ExportLog, Finding,
     Image, ImageLoader, FindingAction, Tab, BaseCharts, TabCharts, ScheduledChartExport,
-    BusinessImpactItem, RiskAssessment, ScoreCard, ScheduledRiskExport
+    BusinessImpactItem, RiskAssessment, ScoreCard, ScheduledRiskExport, OwnerRole
 )
 
 # Register your models here.
@@ -63,6 +63,7 @@ admin.site.register(TabCharts)
 admin.site.register(ScheduledChartExport)
 
 admin.site.register(BusinessImpactItem)
+admin.site.register(OwnerRole)
 @admin.register(RiskAssessment)
 class RiskAssessmentAdmin(admin.ModelAdmin):
     fieldsets = (

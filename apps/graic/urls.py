@@ -11,6 +11,7 @@ urlpatterns = [
 
     path('export/word/<int:pk>/', views.export_graic_word, name='export_graic_word'),
     path('export/excel/<int:pk>/', views.export_graic_excel, name='export_graic_excel'),
+    path("export/generated-file/<int:pk>/", views.export_generated_file, name="export_generated_file"),
     path('export/pdf/<int:pk>/', views.export_graic_pdf, name='export_graic_pdf'),
     path('export/markdown/<int:pk>/', views.export_graic_markdown, name='export_graic_markdown'),
 ]
