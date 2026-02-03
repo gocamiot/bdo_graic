@@ -1077,6 +1077,10 @@
               <label for="name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Name</label>
               <input type="text" name="name" id="name" value="{{ risk_card.name }}" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Risk card name" required>
             </div>
+            <div class="col-span-4">
+              <label for="name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+              {{ description_form.description }}
+            </div>
             <div class="col-span-2">
               <label for="inherent_impact" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Inherent Impact</label>
               <select id="inherent_impact" name="inherent_impact" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
@@ -1138,7 +1142,7 @@
                 <div class="p-2">
                   <input type="text"
                     class="business-search w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-600 dark:text-gray-200 dark:border-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-300"
-                    placeholder="Search department...">
+                    placeholder="Search business impact...">
                 </div>
 
                 <div class="px-3 py-2 border-b">
@@ -1164,13 +1168,42 @@
               </div>
             </div>
 
-            <div class="col-span-2">
-              <label for="recommended_owner_role" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Recommended Owner Role</label>
-              <select id="recommended_owner_role" name="recommended_owner_role" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
-                {% for value, key in recommended_owner_role %}
-                <option {% if risk_card.recommended_owner_role == value %}selected{% endif %} value="{{ value }}">{{ key }}</option>
-                {% endfor %}
-              </select>
+            <div class="col-span-2 relative owner-roles-dropdown">
+              <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                Recommended Owner Role
+              </label>
+              <button type="button"
+                class="owner-roles-btn w-full text-left bg-gray-50 border border-gray-300 text-sm rounded-lg p-2.5 dark:bg-gray-600 dark:text-white">
+                Select Recommended Owner Role
+              </button>
+              <div class="owner-roles-panel hidden absolute z-50 mt-1 w-full bg-white border rounded-lg shadow dark:bg-gray-700">
+                <div class="p-2">
+                  <input type="text"
+                    class="owner-roles-search w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-600 dark:text-gray-200 dark:border-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-300"
+                    placeholder="Search owner roles...">
+                </div>
+
+                <div class="px-3 py-2 border-b">
+                  <label class="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                    <input type="checkbox" class="owner-roles-select-all w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                    Select All
+                  </label>
+                </div>
+
+                <div class="max-h-48 overflow-y-auto py-2 px-3">
+                  {% for value, key in recommended_owner_role %}
+                    <label class="flex items-center gap-2 owner-roles-option text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+                      <input type="checkbox"
+                        name="owner_roles"
+                        class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
+                        value="{{ value }}"
+                        {% if value in owner_roles %}checked{% endif %}
+                      >
+                      {{ key }}
+                    </label>
+                  {% endfor %}
+                </div>
+              </div>
             </div>
             <div class="col-span-4">
               <label for="name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Recommendation & Remediation</label>
@@ -1934,53 +1967,90 @@
 </script>
 
 <script>
-  document.querySelectorAll(".business-dropdown").forEach(dropdown => {
-    const btn = dropdown.querySelector(".business-btn");
-    const panel = dropdown.querySelector(".business-panel");
-    const search = dropdown.querySelector(".business-search");
-    const selectAll = dropdown.querySelector(".business-select-all");
-    const checkboxes = () =>
-      dropdown.querySelectorAll("input[type='checkbox'][name^='business_impact']");
+  function initDropdown({
+    dropdownClass,
+    btnClass,
+    panelClass,
+    searchClass,
+    selectAllClass,
+    optionClass,
+    checkboxNamePrefix,
+    emptyLabelText
+  }) {
+    document.querySelectorAll(dropdownClass).forEach(dropdown => {
+      const btn = dropdown.querySelector(btnClass);
+      const panel = dropdown.querySelector(panelClass);
+      const search = dropdown.querySelector(searchClass);
+      const selectAll = dropdown.querySelector(selectAllClass);
 
-    btn.addEventListener("click", () => {
-      panel.classList.toggle("hidden");
-    });
+      const checkboxes = () =>
+        dropdown.querySelectorAll(
+          `input[type='checkbox'][name^='${checkboxNamePrefix}']`
+        );
 
-    search.addEventListener("input", () => {
-      const val = search.value.toLowerCase();
-      dropdown.querySelectorAll(".business-option").forEach(opt => {
-        opt.style.display = opt.textContent.toLowerCase().includes(val)
-          ? "flex"
-          : "none";
+      btn.addEventListener("click", () => {
+        panel.classList.toggle("hidden");
       });
-    });
 
-    selectAll.addEventListener("change", () => {
-      checkboxes().forEach(cb => cb.checked = selectAll.checked);
+      search.addEventListener("input", () => {
+        const val = search.value.toLowerCase();
+        dropdown.querySelectorAll(optionClass).forEach(opt => {
+          opt.style.display = opt.textContent.toLowerCase().includes(val)
+            ? "flex"
+            : "none";
+        });
+      });
+
+      selectAll.addEventListener("change", () => {
+        checkboxes().forEach(cb => cb.checked = selectAll.checked);
+        updateLabel();
+      });
+
+      function updateLabel() {
+        const selected = [...checkboxes()]
+          .filter(cb => cb.checked)
+          .map(cb => cb.value);
+
+        btn.textContent = selected.length
+          ? selected.join(", ")
+          : emptyLabelText;
+      }
+
+      panel.addEventListener("change", updateLabel);
       updateLabel();
     });
 
-    function updateLabel() {
-      const selected = [...checkboxes()]
-        .filter(cb => cb.checked)
-        .map(cb => cb.value);
+    document.addEventListener("click", e => {
+      document.querySelectorAll(dropdownClass).forEach(d => {
+        if (!d.contains(e.target)) {
+          d.querySelector(panelClass).classList.add("hidden");
+        }
+      });
+    });
+  }
+</script>
 
-      btn.textContent = selected.length
-        ? selected.join(", ")
-        : "Select Business Impact";
-    }
-
-    panel.addEventListener("change", updateLabel);
-
-    updateLabel();
+<script>
+  initDropdown({
+    dropdownClass: ".business-dropdown",
+    btnClass: ".business-btn",
+    panelClass: ".business-panel",
+    searchClass: ".business-search",
+    selectAllClass: ".business-select-all",
+    optionClass: ".business-option",
+    checkboxNamePrefix: "business_impacts",
+    emptyLabelText: "Select Business Impact"
   });
 
-  document.addEventListener("click", e => {
-    document.querySelectorAll(".business-dropdown").forEach(d => {
-      if (!d.contains(e.target)) {
-        d.querySelector(".business-panel").classList.add("hidden");
-      }
-    });
+  initDropdown({
+    dropdownClass: ".owner-roles-dropdown",
+    btnClass: ".owner-roles-btn",
+    panelClass: ".owner-roles-panel",
+    searchClass: ".owner-roles-search",
+    selectAllClass: ".owner-roles-select-all",
+    optionClass: ".owner-roles-option",
+    checkboxNamePrefix: "owner_roles",
+    emptyLabelText: "Select Recommended Owner Roles"
   });
 </script>
 

@@ -29,7 +29,7 @@ from django.db.models import F, Case, When, IntegerField
 from openpyxl import Workbook
 from django.views import View
 from home.models import ColumnOrder
-from apps.tables.forms import TabNotesForm, RecommendationForm
+from apps.tables.forms import TabNotesForm, RecommendationForm, DescriptionForm
 from apps.tables.choices import *
 
 
@@ -609,8 +609,11 @@ def tab_details(request, id):
 
     risk_card = RiskAssessment.objects.filter(parent_tab=tab).first()
     risk_card_business_codes = []
+    owner_roles = []
     if risk_card:
         risk_card_business_codes = list(risk_card.business_impacts.values_list('code', flat=True))
+        owner_roles = list(risk_card.recommended_owner_role.values_list('name', flat=True))
+    
 
     context = {
         'tab': tab,
@@ -648,8 +651,10 @@ def tab_details(request, id):
         'x_fields': x_fields,
         'risk_card': risk_card,
         'risk_card_business_codes': risk_card_business_codes,
+        'owner_roles': owner_roles,
 
         'recommendation_form': RecommendationForm(initial={'audit_recommendation': risk_card.audit_recommendation if risk_card else None}),
+        'description_form': DescriptionForm(initial={'description': risk_card.description if risk_card else None}),
         'inherent_impact': InherentImpact.choices,
         'likelihood': Likelihood.choices,
         'residual_risk': ResidualRiskRating.choices,
@@ -657,7 +662,7 @@ def tab_details(request, id):
         'primary_root_cause': PrimaryRootCause.choices,
         'secondary_root_cause': SecondaryRootCause.choices,
         'business_impact': BusinessImpact.choices,
-        'recommended_owner_role': OwnerRole.choices,
+        'recommended_owner_role': OwnerRoleChoices.choices,
         'total_count': total,
     }
     return render(request, 'apps/tab/tab_details.html', context)

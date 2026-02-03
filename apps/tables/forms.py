@@ -16,6 +16,9 @@ class TabNotesForm(forms.Form):
 class RecommendationForm(forms.Form):
     audit_recommendation = QuillFormField()
 
+class DescriptionForm(forms.Form):
+    description = QuillFormField()
+
 class ActionForm(forms.Form):
     action_to = forms.MultipleChoiceField(
         choices=[], 

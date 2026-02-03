@@ -25,7 +25,7 @@ from apps.tables.models import (
     ModelChoices, 
     ChangeRequests,
     Tab, SelectedRows,
-    BaseCharts
+    BaseCharts, ChartType2
 )
 from home.models import ColumnOrder
 from apps.common.models import SavedFilter, FieldType
@@ -250,7 +250,8 @@ def change_requests(request):
         'fields': fields,
         'saved_filters': saved_filters_json,
         'tabs': Tab.objects.filter(base_view='change_requests').order_by('created_at'),
-        'charts': BaseCharts.objects.filter(base_view='change_requests'),
+        'charts': BaseCharts.objects.filter(base_view='change_requests', chart_type=ChartType2.BASE_CHART),
+        'risk_charts': BaseCharts.objects.filter(base_view='change_requests', chart_type=ChartType2.RISK_CHART),
         'join_model_instance': ChangeRequests.join_model_instance if hasattr( ChangeRequests, 'join_model_instance') else None,
         'selected_rows': selected_rows,
         'selected_rows_qs': software_list.filter(ID__in=selected_rows),

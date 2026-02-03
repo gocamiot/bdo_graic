@@ -851,13 +851,12 @@ def graic_chat_delete(request, chat_id):
 
 # Export
 
-import io
+import io, os
 import html2text
-from django.http import HttpResponse
 from docx import Document
 from openpyxl import Workbook
 from bs4 import BeautifulSoup
-from django.http import HttpResponse
+from django.http import HttpResponse, Http404
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -1001,6 +1000,52 @@ def export_graic_excel(request, pk):
         f"graic_{entry.id}.xlsx",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
+
+def export_generated_file(request, pk):
+    entry = get_object_or_404(Graic, pk=pk)
+
+    if not entry.generated_file:
+        raise Http404("No generated file found")
+
+    destination = request.POST.get("destination", "download")
+    source_file = entry.generated_file
+
+    filename = os.path.basename(source_file.name)
+    content_type = "application/octet-stream"
+
+    source_file.open("rb")
+    file_bytes = source_file.read()
+    source_file.close()
+
+    if destination != "grc":
+        response = HttpResponse(file_bytes, content_type=content_type)
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+
+    user = request.user
+    username = user.username if user.is_authenticated else "anonymous"
+
+    users_root = get_or_create_folder("users", parent=None, user=user)
+    user_folder = get_or_create_folder(username, parent=users_root, user=user)
+    graic_folder = get_or_create_folder("graic", parent=user_folder, user=user)
+
+    file_obj = File.objects.create(
+        file_manager=graic_folder,
+        file=ContentFile(file_bytes, name=filename),
+        action_status=ActionStatus.IS_ACTIVE,
+        file_status=DocumentStatus.APPROVED,
+        uploaded_by=user,
+        updated_by=user,
+    )
+
+    return JsonResponse({
+        "success": True,
+        "file_id": file_obj.id,
+        "filename": filename,
+        "path": f"users/{username}/graic"
+    })
+
 
 # ---- Export to PDF ----
 def export_graic_pdf(request, pk):

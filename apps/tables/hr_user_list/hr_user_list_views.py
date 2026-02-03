@@ -25,7 +25,7 @@ from apps.tables.models import (
     ModelChoices, 
     HRUserList,
     Tab, SelectedRows,
-    BaseCharts
+    BaseCharts, ChartType2
 )
 from home.models import ColumnOrder
 from apps.common.models import SavedFilter, FieldType
@@ -250,7 +250,8 @@ def hr_user_list(request):
         'fields': fields,
         'saved_filters': saved_filters_json,
         'tabs': Tab.objects.filter(base_view='hr_user_list').order_by('created_at'),
-        'charts': BaseCharts.objects.filter(base_view='hr_user_list'),
+        'charts': BaseCharts.objects.filter(base_view='hr_user_list', chart_type=ChartType2.BASE_CHART),
+        'risk_charts': BaseCharts.objects.filter(base_view='hr_user_list', chart_type=ChartType2.RISK_CHART),
         'join_model_instance': HRUserList.join_model_instance if hasattr( HRUserList, 'join_model_instance') else None,
         'selected_rows': selected_rows,
         'selected_rows_qs': software_list.filter(ID__in=selected_rows),

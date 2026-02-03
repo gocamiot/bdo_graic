@@ -191,7 +191,24 @@
                 Drop files here to upload
             </div>
 
-            <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+            <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400 table-fixed">
+                <colgroup>
+                    <col class="w-10">
+                    <col class="w-auto">
+                    <col class="w-52">
+                    <col class="w-32">
+                    <col class="w-24">
+                    <col class="w-28">
+
+                    {% if request.GET.search %}
+                        <col class="w-28">
+                        <col class="w-36">
+                        <col class="w-24">
+                    {% endif %}
+
+                    <col class="w-10">
+                </colgroup>
+
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                     <tr>
                         <th scope="col" class="p-2">
@@ -201,33 +218,33 @@
                                 <label for="checkbox-all" class="sr-only">checkbox</label>
                             </div>
                         </th>
-                        <th scope="col" class="px-6 py-3">
+                        <th scope="col" class="px-4 py-2">
                             Name
                         </th>
-                        <th scope="col" class="px-6 py-3">
+                        <th scope="col" class="px-3 py-2">
                             Date modified
                         </th>
-                        <th scope="col" class="px-6 py-3">
+                        <th scope="col" class="px-3 py-2">
                             Modified By
                         </th>
-                        <th scope="col" class="px-6 py-3">
+                        <th scope="col" class="px-3 py-2">
                             Type
                         </th>
-                        <th scope="col" class="px-6 py-3">
+                        <th scope="col" class="px-3 py-2">
                             Size
                         </th>
                         {% if request.GET.search %}
-                        <th scope="col" class="px-6 py-3">
+                        <th scope="col" class="px-3 py-2">
                             Matched Pages
                         </th>
-                        <th scope="col" class="px-6 py-3">
+                        <th scope="col" class="px-3 py-2">
                             Matched Positions
                         </th>
-                        <th scope="col" class="px-6 py-3">
+                        <th scope="col" class="px-3 py-2">
                             Similarity
                         </th>
                         {% endif %}
-                        <th scope="col" class="px-6 py-3"></th>
+                        <th scope="col" class="px-3 py-2"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -241,7 +258,7 @@
                                 <label for="checkbox-{{file_manager.id}}" class="sr-only">checkbox</label>
                             </div>
                         </td>
-                        <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                        <th scope="row" class="px-3 py-1.5 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                             <a href="{% url "sub_folders" file_manager.slug %}" class="inline-flex items-center gap-1">
                                 <svg class="w-5 h-5 text-gray-800 dark:text-white block" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
                                     <path fill-rule="evenodd" d="M3 6a2 2 0 0 1 2-2h5.532a2 2 0 0 1 1.536.72l1.9 2.28H3V6Zm0 3v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9H3Z" clip-rule="evenodd"/>
@@ -250,22 +267,22 @@
                                 <span class="block">{{ file_manager.name }}</span>
                             </a>
                         </th>
-                        <td class="px-6 py-4">
+                        <td class="px-3 py-1.5">
                             {{ file_manager.updated_at }}
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 py-1.5">
                             {{ file_manager.updated_by }}
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 py-1.5">
                             Folder
                         </td>
-                        <td class="px-6 py-4"></td>
+                        <td class="px-3 py-1.5"></td>
                         {% if request.GET.search %}
-                        <td class="px-6 py-4"></td>
-                        <td class="px-6 py-4"></td>
-                        <td class="px-6 py-4"></td>
+                        <td class="px-3 py-1.5"></td>
+                        <td class="px-3 py-1.5"></td>
+                        <td class="px-3 py-1.5"></td>
                         {% endif %}
-                        <td class="px-6 py-4">
+                        <td class="px-3 py-1.5">
                             <svg 
                                 id="folderDropdownMenuIconButton{{file_manager.id}}" 
                                 data-dropdown-toggle="folderInfo{{file_manager.id}}"
@@ -455,45 +472,45 @@
                                 <label for="checkbox-{{file.id}}" class="sr-only">checkbox</label>
                             </div>
                         </td>
-                        <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                        <th scope="row" class="px-3 py-1.5 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                             <a target="_blank" href="{{ file.file.url }}" class="inline-flex items-center gap-1">
                                 <svg class="w-5 h-5 text-gray-800 dark:text-white block" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
                                     <path fill-rule="evenodd" d="M9 2.221V7H4.221a2 2 0 0 1 .365-.5L8.5 2.586A2 2 0 0 1 9 2.22ZM11 2v5a2 2 0 0 1-2 2H4v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-7Z" clip-rule="evenodd"/>
                                 </svg>
 
-                                <span class="block">{{ file.short_file_name }}</span>
+                                <span class="block">{{ file.file_name }}</span>
                             </a>
                         </th>
-                        <td class="px-6 py-4">
+                        <td class="px-3 py-1.5">
                             {{ file.updated_at }}
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 py-1.5">
                             {{ file.updated_by }}
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 py-1.5">
                             File
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 py-1.5">
                             {{ file.file_size }}
                         </td>
                         {% if request.GET.search %}
-                        <td class="px-6 py-4">
+                        <td class="px-3 py-1.5">
                             {% for loc in file.matched_locations %}
                                 <span class="block">Page: {{ loc.page }}</span>
                             {% endfor %}
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 py-1.5">
                             {% for loc in file.matched_locations %}
                                 <span class="block">{{ loc.position }}</span>
                             {% endfor %}
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 py-1.5">
                             {% for loc in file.matched_locations %}
                                 <span class="block">{{ loc.similarity|percentage }}</span>
                             {% endfor %}
                         </td>
                         {% endif %}
-                        <td class="px-6 py-4">
+                        <td class="px-3 py-1.5">
                             <svg 
                                 id="fileDropdownMenuIconButton{{file.id}}" 
                                 data-dropdown-toggle="fileInfo{{file.id}}"

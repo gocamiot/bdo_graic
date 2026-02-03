@@ -6,7 +6,8 @@ from django.shortcuts import redirect, get_object_or_404, render
 from apps.tables.models import (
     Tab, BaseCharts, ModelChoices,
     ChartPrompt, ChartType2, ScoreCard,
-    RiskAssessment, BusinessImpactItem
+    RiskAssessment, BusinessImpactItem,
+    OwnerRole
 )
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -147,7 +148,7 @@ def add_risk_card(request, tab_id):
         form_data = {}
 
         for key, value in request.POST.items():
-            if key in ('csrfmiddlewaretoken', 'business_impacts', 'base_view'):
+            if key in ('csrfmiddlewaretoken', 'business_impacts', 'base_view', 'owner_roles'):
                 continue
             form_data[key] = value
 
@@ -169,6 +170,11 @@ def add_risk_card(request, tab_id):
             code__in=request.POST.getlist('business_impacts')
         )
         risk_assessment.business_impacts.set(business_impacts)
+
+        owner_roles = OwnerRole.objects.filter(
+            name__in=request.POST.getlist('owner_roles')
+        )
+        risk_assessment.recommended_owner_role.set(owner_roles)
 
         return redirect(request.META.get('HTTP_REFERER'))
 
@@ -256,7 +262,7 @@ def risk_chart_details(request, chart_id):
         "primary_root_cause": PrimaryRootCause.choices,
         "secondary_root_cause": SecondaryRootCause.choices,
         "business_impact": BusinessImpact.choices,
-        "recommended_owner_role": OwnerRole.choices,
+        "recommended_owner_role": OwnerRoleChoices.choices,
     }
 
     return render(request, "apps/charts/risk_chart_details.html", context)
@@ -309,6 +315,7 @@ def quill_delta_to_text(value):
 def serialize_risk_assessment(risk: RiskAssessment):
     data = {
         "Risk Name": risk.name,
+        "Risk Description": quill_delta_to_text(risk.description),
         "Inherent Impact": risk.get_inherent_impact_display(),
         "Likelihood": risk.get_likelihood_display(),
         "Residual Risk": risk.get_residual_risk_display(),
@@ -322,7 +329,9 @@ def serialize_risk_assessment(risk: RiskAssessment):
             bi.code for bi in risk.business_impacts.all()
         ) or "N/A",
         "Audit Recommendation": quill_delta_to_text(risk.audit_recommendation),
-        "Recommended Owner Role": risk.get_recommended_owner_role_display(),
+        "Recommended Owner Roles": ", ".join(
+            role.name for role in risk.recommended_owner_role.all()
+        ) or "N/A",
         "Target Remediation Date": risk.target_remediation_date.strftime("%Y-%m-%d"),
         "Management Response": risk.management_response or "N/A",
         "Agreed Action Plan": risk.agreed_action_plan or "N/A",

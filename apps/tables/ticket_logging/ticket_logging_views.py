@@ -25,7 +25,7 @@ from apps.tables.models import (
     ModelChoices, 
     TicketLogging,
     Tab, SelectedRows,
-    BaseCharts
+    BaseCharts, ChartType2
 )
 from home.models import ColumnOrder
 from apps.common.models import SavedFilter, FieldType
@@ -250,7 +250,8 @@ def ticket_logging(request):
         'fields': fields,
         'saved_filters': saved_filters_json,
         'tabs': Tab.objects.filter(base_view='ticket_logging').order_by('created_at'),
-        'charts': BaseCharts.objects.filter(base_view='ticket_logging'),
+        'charts': BaseCharts.objects.filter(base_view='ticket_logging', chart_type=ChartType2.BASE_CHART),
+        'risk_charts': BaseCharts.objects.filter(base_view='ticket_logging', chart_type=ChartType2.RISK_CHART),
         'join_model_instance': TicketLogging.join_model_instance if hasattr( TicketLogging, 'join_model_instance') else None,
         'selected_rows': selected_rows,
         'selected_rows_qs': software_list.filter(ID__in=selected_rows),

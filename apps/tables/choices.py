@@ -56,7 +56,7 @@ class BusinessImpact(models.TextChoices):
     REPUTATIONAL_DAMAGE = 'REPUTATIONAL_DAMAGE', 'Reputational damage'
 
 
-class OwnerRole(models.TextChoices):
+class OwnerRoleChoices(models.TextChoices):
     IT = 'IT', 'IT'
     HR = 'HR', 'HR'
     SECURITY = 'SECURITY', 'Security'
