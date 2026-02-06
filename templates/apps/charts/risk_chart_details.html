@@ -309,7 +309,7 @@
                                 <div class="mb-4">
                                     <label class="block mb-2 text-sm font-medium">Frequency</label>
                                     <select id="schedule_frequency_{{ item.tab.id}}" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
-                                        <option value="once">One time</option>
+                                        {% comment %} <option value="once">One time</option> {% endcomment %}
                                         <option value="hourly">Hourly</option>
                                         <option value="daily">Daily</option>
                                         <option value="weekly">Weekly</option>

@@ -33,6 +33,8 @@ from django.core.files.base import ContentFile
 from django.conf import settings
 from apps.tables.models import DocumentStatus
 from loader.models import InstantUpload
+from docx.shared import Inches, Pt
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 
 def create_risk_chart_filter(request, chart_id):
     chart = BaseCharts.objects.get(id=chart_id)
@@ -588,36 +590,82 @@ def export_risk_docx(request):
     if request.method != "POST":
         return HttpResponse("Invalid request", status=400)
 
+    # -------------------------------------------------
+    # Inputs
+    # -------------------------------------------------
     heatmap_image_base64 = request.POST.get("heatmap_image")
     heatmap_image_file = decode_base64_image(heatmap_image_base64)
     risk_id = request.POST.get("risk_id")
     custom_prompt = request.POST.get("custom_prompt", "").strip()
     export_option = request.POST.get("export_option", "download")
 
+    # -------------------------------------------------
+    # Load data
+    # -------------------------------------------------
     risk = get_object_or_404(RiskAssessment, id=risk_id)
     ai_analysis = generate_ai_risk_analysis(request, risk, custom_prompt, image_data=heatmap_image_base64)
     risk_data = serialize_risk_assessment(risk)
 
+    # -------------------------------------------------
+    # Create Word Document
+    # -------------------------------------------------
     doc = Document()
-    doc.add_heading(f"Risk Assessment Report – {risk.name}", level=1)
 
+    # Title
+    title = doc.add_heading(f"Risk Assessment Report – {risk.name}", level=0)
+    title.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+    # Export Date/Time
+    export_datetime = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
+    export_para = doc.add_paragraph(f"Export Date/Time: {export_datetime}")
+    export_para.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    export_para.space_after = Pt(12)
+
+    # -------------------------------------------------
+    # Heatmap image
+    # -------------------------------------------------
     if heatmap_image_file:
-        from docx.shared import Inches
-
-        doc.add_heading("Risk Heatmap", level=2)
+        doc.add_heading(risk.name, level=1)
         doc.add_picture(heatmap_image_file, width=Inches(6))
+        doc.add_paragraph("")  # space after image
 
-    doc.add_heading("Risk Details", level=2)
+    # -------------------------------------------------
+    # Risk Details
+    # -------------------------------------------------
+    doc.add_heading("RISK DETAILS", level=1)
     for key, value in risk_data.items():
-        doc.add_paragraph(f"{key}: {value}")
+        p = doc.add_paragraph(f"{key}: {value}")
+        p.space_after = Pt(6)
 
-    doc.add_heading("grAIc Analysis", level=2)
-    doc.add_paragraph(ai_analysis or "No analysis generated.")
+    # -------------------------------------------------
+    # GRaIC Analysis
+    # -------------------------------------------------
+    doc.add_heading("GRaIC ANALYSIS", level=1)
+    if ai_analysis:
+        for line in ai_analysis.split("\n"):
+            clean_line = line.strip()
+            if not clean_line:
+                doc.add_paragraph("")  # blank line
+                continue
+            if clean_line.startswith("- "):
+                p = doc.add_paragraph(clean_line, style='List Bullet')
+                p.space_after = Pt(6)
+            else:
+                p = doc.add_paragraph(clean_line)
+                p.space_after = Pt(6)
+    else:
+        doc.add_paragraph("No analysis generated.")
 
+    # -------------------------------------------------
+    # Save to BytesIO
+    # -------------------------------------------------
     output = BytesIO()
     doc.save(output)
     output.seek(0)
 
+    # -------------------------------------------------
+    # Return file
+    # -------------------------------------------------
     timestamp = timezone.now().strftime("%Y%m%d_%H%M%S")
     filename = f"{risk.name}_{timestamp}.docx"
 
@@ -633,82 +681,195 @@ def export_risk_docx(request):
     return response
 
 
+from io import BytesIO
+import textwrap
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.utils import ImageReader
+
 def export_risk_pdf(request):
+
     if request.method != "POST":
         return HttpResponse("Invalid request", status=400)
 
+    # -------------------------------------------------
+    # Inputs
+    # -------------------------------------------------
     heatmap_image_base64 = request.POST.get("heatmap_image")
     heatmap_image_file = decode_base64_image(heatmap_image_base64)
+
     risk_id = request.POST.get("risk_id")
     custom_prompt = request.POST.get("custom_prompt", "").strip()
     export_option = request.POST.get("export_option", "download")
 
+    # -------------------------------------------------
+    # Load data
+    # -------------------------------------------------
     risk = get_object_or_404(RiskAssessment, id=risk_id)
-    ai_analysis = generate_ai_risk_analysis(request, risk, custom_prompt, image_data=heatmap_image_base64)
+
+    ai_analysis = generate_ai_risk_analysis(
+        request,
+        risk,
+        custom_prompt,
+        image_data=heatmap_image_base64
+    )
+
     risk_data = serialize_risk_assessment(risk)
 
+    # -------------------------------------------------
+    # Section headings
+    # -------------------------------------------------
+    SECTION_HEADINGS = {
+        "REPORT CONTEXT",
+        "SHORT RISK SUMMARY",
+        "SUMMARY OF SOURCE INFORMATION",
+        "KEY OBSERVATIONS",
+        "RISKS AND WHY THIS MATTERS",
+        "RECOMMENDED NEXT STEPS",
+        "CONFIDENCE AND LIMITATIONS",
+    }
+
+    # -------------------------------------------------
+    # PDF setup
+    # -------------------------------------------------
     buffer = BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
-
+    left_margin = 40
+    right_margin = width - 40
     y = height - 40
+
+    # -------------------------------------------------
+    # Page break helper
+    # -------------------------------------------------
+    def check_page_break(y_pos, min_y=60):
+        if y_pos < min_y:
+            p.showPage()
+            p.setFont("Helvetica", 11)
+            return height - 40
+        return y_pos
+
+    # -------------------------------------------------
+    # Title / Risk Name / Export Date
+    # -------------------------------------------------
     p.setFont("Helvetica-Bold", 18)
-    p.drawString(40, y, f"Risk Assessment Report – {risk.name}")
-    y -= 30
+    p.drawString(left_margin, y, f"Risk Assessment Report – {risk.name}")
+    y -= 25
 
+    p.setFont("Helvetica", 11)
+    export_datetime = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
+    p.drawString(left_margin, y, f"Export Date/Time: {export_datetime}")
+    y -= 35
+
+    # -------------------------------------------------
+    # Heatmap image
+    # -------------------------------------------------
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(left_margin, y, f"{risk.name}")
+    y -= 15
     if heatmap_image_file:
-        from reportlab.lib.utils import ImageReader
-
         img = ImageReader(heatmap_image_file)
         iw, ih = img.getSize()
         aspect = ih / float(iw)
-
         img_width = width - 80
         img_height = img_width * aspect
 
-        if y - img_height < 60:
+        if y - img_height < 80:
             p.showPage()
             y = height - 40
 
-        p.drawImage(img, 40, y - img_height, img_width, img_height)
-        y -= img_height + 20
+        p.drawImage(img, left_margin, y - img_height, img_width, img_height)
+        y -= img_height + 25
 
+    # -------------------------------------------------
+    # Risk Description / Details after Heatmap
+    # -------------------------------------------------
     y -= 10
-    p.setFont("Helvetica-Bold", 14)
-    p.drawString(40, y, "Risk Details")
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(left_margin, y, "RISK DETAILS")
     y -= 20
-
+    p.line(left_margin, y + 5, right_margin, y + 5)
+    y -= 15
     p.setFont("Helvetica", 11)
+
     for key, value in risk_data.items():
-        for line in textwrap.wrap(f"{key}: {value}", 95):
-            p.drawString(40, y, line)
+        text = f"{key}: {value}"
+        for line in textwrap.wrap(text, 95):
+            y = check_page_break(y)
+            p.drawString(left_margin, y, line)
             y -= 14
-            if y < 60:
-                p.showPage()
-                y = height - 40
-                p.setFont("Helvetica", 11)
 
-    y -= 10
-    p.setFont("Helvetica-Bold", 14)
-    p.drawString(40, y, "grAIc Analysis")
+    # -------------------------------------------------
+    # GRaIC Analysis Heading
+    # -------------------------------------------------
+    y -= 35
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(left_margin, y, "GRaIC ANALYSIS")
     y -= 20
-
+    p.line(left_margin, y + 5, right_margin, y + 5)
+    y -= 20
     p.setFont("Helvetica", 11)
-    for line in (ai_analysis or "").split("\n"):
-        for wrapped in textwrap.wrap(line, 95):
-            p.drawString(40, y, wrapped)
-            y -= 14
-            if y < 60:
-                p.showPage()
-                y = height - 40
-                p.setFont("Helvetica", 11)
 
+    # -------------------------------------------------
+    # Render AI text (with bullets + headings)
+    # -------------------------------------------------
+    previous_was_bullet = False
+
+    for line in (ai_analysis or "").split("\n"):
+        clean_line = line.strip()
+
+        # Blank line
+        if not clean_line:
+            y -= 16
+            previous_was_bullet = False
+            continue
+
+        # Section heading
+        if clean_line in SECTION_HEADINGS:
+            y = check_page_break(y, 120)
+            y -= 30
+            p.setFont("Helvetica-Bold", 14)
+            p.drawString(left_margin, y, clean_line)
+            y -= 20
+            p.line(left_margin, y + 5, right_margin, y + 5)
+            y -= 18
+            p.setFont("Helvetica", 11)
+            previous_was_bullet = False
+            continue
+
+        # Bullet detection
+        is_bullet = clean_line.startswith("- ")
+        wrapped_lines = textwrap.wrap(clean_line, 95)
+
+        for wrapped in wrapped_lines:
+            y = check_page_break(y)
+            p.drawString(left_margin, y, wrapped)
+            y -= 14
+
+        # Spacing rules
+        if is_bullet:
+            y -= 6
+            if not previous_was_bullet:
+                y -= 4
+            previous_was_bullet = True
+        else:
+            y -= 4
+            previous_was_bullet = False
+
+    # -------------------------------------------------
+    # Finalise PDF
+    # -------------------------------------------------
     p.showPage()
     p.save()
-
     pdf = buffer.getvalue()
     buffer.close()
 
+    # -------------------------------------------------
+    # Return file
+    # -------------------------------------------------
     timestamp = timezone.now().strftime("%Y%m%d_%H%M%S")
     filename = f"{risk.name}_{timestamp}.pdf"
 
@@ -770,33 +931,119 @@ def generate_risk_export_from_schedule(schedule: ScheduledRiskExport):
 
     return output
 
-def export_risk_docx_programmatic(risk, user, custom_prompt="", image_data=None, export_option="grc"):
+def export_risk_docx_programmatic(
+    risk,
+    user,
+    custom_prompt="",
+    image_data=None,
+    export_option="grc"
+):
+    # -------------------------------------------------
+    # Fake request (for AI + permissions)
+    # -------------------------------------------------
     request = fake_request_for_user(user)
+
+    # -------------------------------------------------
+    # Inputs
+    # -------------------------------------------------
     heatmap_image_file = decode_base64_image(image_data)
-    ai_analysis = generate_ai_risk_analysis(request=request, risk=risk, custom_prompt=custom_prompt, image_data=image_data)
+
+    # -------------------------------------------------
+    # Load data
+    # -------------------------------------------------
+    ai_analysis = generate_ai_risk_analysis(
+        request=request,
+        risk=risk,
+        custom_prompt=custom_prompt,
+        image_data=image_data
+    )
+
     risk_data = serialize_risk_assessment(risk)
 
+    # -------------------------------------------------
+    # Create Word Document
+    # -------------------------------------------------
     doc = Document()
-    doc.add_heading(f"Risk Assessment Report – {risk.name}", level=1)
 
+    # Title (same as main function)
+    title = doc.add_heading(
+        f"Risk Assessment Report – {risk.name}",
+        level=0
+    )
+    title.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+    # Export Date/Time
+    export_datetime = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    export_para = doc.add_paragraph(
+        f"Export Date/Time: {export_datetime}"
+    )
+    export_para.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+    # desc_para = doc.add_paragraph(
+    #     "Description: " +
+    #     quill_delta_to_text(risk.description)
+    # )
+    # desc_para.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    # desc_para.space_after = Pt(12)
+
+    # -------------------------------------------------
+    # Heatmap
+    # -------------------------------------------------
     if heatmap_image_file:
-        from docx.shared import Inches
-        doc.add_heading("Risk Heatmap", level=2)
+        doc.add_heading(f"{risk.name}", level=1)
         doc.add_picture(heatmap_image_file, width=Inches(6))
+        doc.add_paragraph("")
 
-    doc.add_heading("Risk Details", level=2)
+    # -------------------------------------------------
+    # Risk Details
+    # -------------------------------------------------
+    doc.add_heading("RISK DETAILS", level=1)
+
     for key, value in risk_data.items():
-        doc.add_paragraph(f"{key}: {value}")
+        p = doc.add_paragraph(f"{key}: {value}")
+        p.space_after = Pt(6)
 
-    doc.add_heading("grAIc Analysis", level=2)
-    doc.add_paragraph(ai_analysis or "No analysis generated.")
+    # -------------------------------------------------
+    # GRaIC Analysis
+    # -------------------------------------------------
+    doc.add_heading("GRaIC ANALYSIS", level=1)
 
+    if ai_analysis:
+        for line in ai_analysis.split("\n"):
+
+            clean_line = line.strip()
+
+            if not clean_line:
+                doc.add_paragraph("")
+                continue
+
+            if clean_line.startswith("- "):
+                p = doc.add_paragraph(
+                    clean_line,
+                    style="List Bullet"
+                )
+            else:
+                p = doc.add_paragraph(clean_line)
+
+            p.space_after = Pt(6)
+
+    else:
+        doc.add_paragraph("No analysis generated.")
+
+    # -------------------------------------------------
+    # Save
+    # -------------------------------------------------
     output = BytesIO()
     doc.save(output)
     output.seek(0)
 
+    # -------------------------------------------------
+    # Return
+    # -------------------------------------------------
     timestamp = timezone.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"risk_{risk.id}_{timestamp}.docx"
+
+    filename = f"{risk.name}_{timestamp}.docx"
 
     if export_option == "grc":
         return get_chart_save_path(user, output, filename)
@@ -804,72 +1051,254 @@ def export_risk_docx_programmatic(risk, user, custom_prompt="", image_data=None,
     return output.getvalue(), filename
 
 
-def export_risk_pdf_programmatic(risk, user, custom_prompt="", image_data=None, export_option="grc"):
+def export_risk_pdf_programmatic(
+    risk,
+    user,
+    custom_prompt="",
+    image_data=None,
+    export_option="grc"
+):
+    # -------------------------------------------------
+    # Fake request
+    # -------------------------------------------------
     request = fake_request_for_user(user)
+
+    # -------------------------------------------------
+    # Inputs
+    # -------------------------------------------------
     heatmap_image_file = decode_base64_image(image_data)
-    ai_analysis = generate_ai_risk_analysis(request=request, risk=risk, custom_prompt=custom_prompt, image_data=image_data)
+
+    # -------------------------------------------------
+    # Load data
+    # -------------------------------------------------
+    ai_analysis = generate_ai_risk_analysis(
+        request=request,
+        risk=risk,
+        custom_prompt=custom_prompt,
+        image_data=image_data
+    )
+
     risk_data = serialize_risk_assessment(risk)
 
+    # -------------------------------------------------
+    # Section headings
+    # -------------------------------------------------
+    SECTION_HEADINGS = {
+        "REPORT CONTEXT",
+        "SHORT RISK SUMMARY",
+        "SUMMARY OF SOURCE INFORMATION",
+        "KEY OBSERVATIONS",
+        "RISKS AND WHY THIS MATTERS",
+        "RECOMMENDED NEXT STEPS",
+        "CONFIDENCE AND LIMITATIONS",
+    }
+
+    # -------------------------------------------------
+    # PDF setup
+    # -------------------------------------------------
     buffer = BytesIO()
+
     p = canvas.Canvas(buffer, pagesize=letter)
+
     width, height = letter
 
-    y = height - 40
-    p.setFont("Helvetica-Bold", 18)
-    p.drawString(40, y, f"Risk Assessment Report – {risk.name}")
-    y -= 30
+    left_margin = 40
+    right_margin = width - 40
 
+    y = height - 40
+
+    # -------------------------------------------------
+    # Page break helper
+    # -------------------------------------------------
+    def check_page_break(y_pos, min_y=60):
+        if y_pos < min_y:
+            p.showPage()
+            p.setFont("Helvetica", 11)
+            return height - 40
+        return y_pos
+
+    # -------------------------------------------------
+    # Title / Export Date
+    # -------------------------------------------------
+    p.setFont("Helvetica-Bold", 18)
+    p.drawString(
+        left_margin,
+        y,
+        f"Risk Assessment Report – {risk.name}"
+    )
+    y -= 25
+
+    p.setFont("Helvetica", 11)
+
+    export_datetime = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    p.drawString(
+        left_margin,
+        y,
+        f"Export Date/Time: {export_datetime}"
+    )
+
+    y -= 35
+
+    # -------------------------------------------------
+    # Heatmap
+    # -------------------------------------------------
+
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(left_margin, y, f"{risk.name}")
+    y -= 15
+    
     if heatmap_image_file:
-        from reportlab.lib.utils import ImageReader
+
         img = ImageReader(heatmap_image_file)
+
         iw, ih = img.getSize()
+
         aspect = ih / float(iw)
+
         img_width = width - 80
         img_height = img_width * aspect
-        if y - img_height < 60:
+
+        if y - img_height < 80:
             p.showPage()
             y = height - 40
-        p.drawImage(img, 40, y - img_height, img_width, img_height)
-        y -= img_height + 20
 
+        p.drawImage(
+            img,
+            left_margin,
+            y - img_height,
+            img_width,
+            img_height
+        )
+
+        y -= img_height + 25
+
+    # -------------------------------------------------
+    # Risk Details
+    # -------------------------------------------------
     y -= 10
-    p.setFont("Helvetica-Bold", 14)
-    p.drawString(40, y, "Risk Details")
+
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(left_margin, y, "RISK DETAILS")
+
     y -= 20
 
+    p.line(left_margin, y + 5, right_margin, y + 5)
+
+    y -= 15
+
     p.setFont("Helvetica", 11)
+
     for key, value in risk_data.items():
-        for line in textwrap.wrap(f"{key}: {value}", 95):
-            p.drawString(40, y, line)
-            y -= 14
-            if y < 60:
-                p.showPage()
-                y = height - 40
-                p.setFont("Helvetica", 11)
 
-    y -= 10
-    p.setFont("Helvetica-Bold", 14)
-    p.drawString(40, y, "grAIc Analysis")
+        text = f"{key}: {value}"
+
+        for line in textwrap.wrap(text, 95):
+
+            y = check_page_break(y)
+
+            p.drawString(left_margin, y, line)
+
+            y -= 14
+
+    # -------------------------------------------------
+    # GRaIC Analysis
+    # -------------------------------------------------
+    y -= 35
+
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(left_margin, y, "GRaIC ANALYSIS")
+
+    y -= 20
+
+    p.line(left_margin, y + 5, right_margin, y + 5)
+
     y -= 20
 
     p.setFont("Helvetica", 11)
-    for line in (ai_analysis or "").split("\n"):
-        for wrapped in textwrap.wrap(line, 95):
-            p.drawString(40, y, wrapped)
-            y -= 14
-            if y < 60:
-                p.showPage()
-                y = height - 40
-                p.setFont("Helvetica", 11)
 
+    # -------------------------------------------------
+    # AI Rendering
+    # -------------------------------------------------
+    previous_was_bullet = False
+
+    for line in (ai_analysis or "").split("\n"):
+
+        clean_line = line.strip()
+
+        # Blank line
+        if not clean_line:
+            y -= 16
+            previous_was_bullet = False
+            continue
+
+        # Section heading
+        if clean_line in SECTION_HEADINGS:
+
+            y = check_page_break(y, 120)
+
+            y -= 30
+
+            p.setFont("Helvetica-Bold", 14)
+
+            p.drawString(left_margin, y, clean_line)
+
+            y -= 20
+
+            p.line(left_margin, y + 5, right_margin, y + 5)
+
+            y -= 18
+
+            p.setFont("Helvetica", 11)
+
+            previous_was_bullet = False
+
+            continue
+
+        # Bullet
+        is_bullet = clean_line.startswith("- ")
+
+        wrapped_lines = textwrap.wrap(clean_line, 95)
+
+        for wrapped in wrapped_lines:
+
+            y = check_page_break(y)
+
+            p.drawString(left_margin, y, wrapped)
+
+            y -= 14
+
+        # Spacing rules
+        if is_bullet:
+
+            y -= 6
+
+            if not previous_was_bullet:
+                y -= 4
+
+            previous_was_bullet = True
+
+        else:
+
+            y -= 4
+
+            previous_was_bullet = False
+
+    # -------------------------------------------------
+    # Finalise
+    # -------------------------------------------------
     p.showPage()
     p.save()
 
     pdf = buffer.getvalue()
     buffer.close()
 
+    # -------------------------------------------------
+    # Return
+    # -------------------------------------------------
     timestamp = timezone.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"risk_{risk.id}_{timestamp}.pdf"
+
+    filename = f"{risk.name}_{timestamp}.pdf"
 
     if export_option == "grc":
         return get_chart_save_path(user, BytesIO(pdf), filename)
