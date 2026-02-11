@@ -145,3 +145,13 @@ class PyFunction(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Application(BaseModel):
+    name = models.CharField(max_length=255)
+    thumbnail = models.ImageField(upload_to='thumbnail', null=True, blank=True)
+    info = models.TextField(null=True, blank=True)
+    url = models.URLField()
+
+    def __str__(self):
+        return self.name

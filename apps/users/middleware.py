@@ -9,7 +9,7 @@ class LoginRequiredMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if not request.user.is_authenticated and not request.path_info.startswith('/users/') and request.path_info != '/':
+        if not request.user.is_authenticated and not request.path_info.startswith('/users/') and request.path_info != '/' and not request.path_info.startswith('/media/'):
             original_url = request.get_full_path()
             redirect_url = reverse('signin') + f'?next={original_url}'
             return redirect(redirect_url)

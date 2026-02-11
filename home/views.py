@@ -140,11 +140,15 @@ def index(request):
 
 	return render(request, "dashboard/index.html", context)
 
+from home.models import Application
 
 def starter(request):
-
-	context = {}
-	return render(request, "pages/grc_starter.html", context)
+    applications = Application.objects.all()
+    
+    context = {
+        'applications': applications
+    }
+    return render(request, "pages/grc_starter.html", context)
 
 
 # table dropdown
